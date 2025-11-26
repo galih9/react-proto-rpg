@@ -8,7 +8,7 @@ import { useGameLogic } from "./hooks/useGameLogic";
 import { GameTile } from "./components/GameTile";
 import { DraggableUnit } from "./components/DraggableUnit";
 import { ActionPanel } from "./components/ActionPanel";
-import { BattleLog } from "./components/BattleLog"; // <--- Now importing the real component
+import { BattleLog } from "./components/BattleLog";
 
 export default function App() {
   const [tiles] = useState(createGrid());
@@ -20,7 +20,8 @@ export default function App() {
     currentActor,
     enemies,
     attackingUnitId,
-    logs,
+    hitTargetId,
+    logs, // <--- Added hitTargetId
     moveUnit,
     initializeGame,
     startBattle,
@@ -32,17 +33,22 @@ export default function App() {
       <div className="min-h-screen bg-slate-800 text-white p-8 flex flex-col items-center">
         <h1 className="text-3xl font-bold mb-4">React RPG Prototype</h1>
 
-        {/* ... (Header, Board, Staging Area, ActionPanel code remains the same) ... */}
-
         {/* --- HEADER --- */}
         <div className="w-full max-w-4xl flex justify-between mb-4 bg-slate-700 p-4 rounded">
           <div>
             <p className="font-bold">
               Phase: <span className="text-yellow-400">{phase}</span>
             </p>
-            {phase === "PLAYER_TURN" && (
+            {(phase === "PLAYER_TURN" || phase === "ENEMY_TURN") && (
               <p>
-                Turn Points: <span className="text-cyan-400">{turnPoints}</span>
+                Turn Points:{" "}
+                <span
+                  className={
+                    phase === "PLAYER_TURN" ? "text-cyan-400" : "text-red-400"
+                  }
+                >
+                  {turnPoints}
+                </span>
               </p>
             )}
           </div>
@@ -85,6 +91,7 @@ export default function App() {
                       currentActor?.id === unitOnTile.id
                     }
                     isAttacking={attackingUnitId === unitOnTile.id}
+                    isHit={hitTargetId === unitOnTile.id} // <--- Pass the prop here!
                   />
                 )}
               </GameTile>
@@ -103,6 +110,7 @@ export default function App() {
                   unit={u}
                   isTurn={false}
                   isAttacking={false}
+                  isHit={false}
                 />
               ))}
           </div>
@@ -117,7 +125,14 @@ export default function App() {
           />
         )}
 
-        {/* --- LOGS (Replaced inline component with the new file) --- */}
+        {/* --- ENEMY TURN MESSAGE --- */}
+        {phase === "ENEMY_TURN" && (
+          <div className="bg-red-900/50 p-4 rounded w-full max-w-2xl mb-4 text-center border border-red-500 animate-pulse">
+            Enemy is thinking...
+          </div>
+        )}
+
+        {/* --- LOGS --- */}
         <BattleLog logs={logs} />
       </div>
     </DndProvider>

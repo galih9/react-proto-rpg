@@ -1,11 +1,16 @@
-export type Phase = 'START' | 'SETUP' | 'PLAYER_TURN' | 'PASSIVE';
-export type UnitType = 'PLAYER' | 'ENEMY';
-export type Element = 'FIRE' | 'ICE' | 'WIND' | 'PHYSICAL';
+export type Phase =
+  | "START"
+  | "SETUP"
+  | "PLAYER_TURN"
+  | "ENEMY_TURN"
+  | "PASSIVE";
+export type UnitType = "PLAYER" | "ENEMY";
+export type Element = "FIRE" | "ICE" | "WIND" | "PHYSICAL";
 
 export interface Unit {
   id: string;
   type: UnitType;
-  x: number | null; 
+  x: number | null;
   y: number | null;
   hp: number;
   maxHp: number;
@@ -17,7 +22,7 @@ export interface Unit {
 export interface TileData {
   x: number;
   y: number;
-  zone: 'PLAYER' | 'NEUTRAL' | 'ENEMY';
+  zone: "PLAYER" | "NEUTRAL" | "ENEMY";
 }
 
 export interface LogEntry {
