@@ -22,20 +22,20 @@ export const GameTile: React.FC<Props> = ({ tile, phase, moveUnit, children }) =
   }), [phase, tile]); // <--- FIX INCLUDED HERE
 
   let bgClass = 'bg-white';
-  if (tile.zone === 'PLAYER') bgClass = 'bg-blue-50';
-  if (tile.zone === 'NEUTRAL') bgClass = 'bg-gray-200';
-  if (tile.zone === 'ENEMY') bgClass = 'bg-red-50';
+  if (tile.zone === 'PLAYER') bgClass = 'bg-blue-100';
+  if (tile.zone === 'NEUTRAL') bgClass = 'bg-gray-300';
+  if (tile.zone === 'ENEMY') bgClass = 'bg-red-100';
 
-  if (isOver && canDrop) bgClass = 'bg-green-300';
-  if (!isOver && canDrop) bgClass = 'bg-green-100';
-  if (isOver && !canDrop) bgClass = 'bg-gray-400';
+  if (isOver && canDrop) bgClass = 'bg-green-400 transform scale-105';
+  if (!isOver && canDrop) bgClass = 'bg-green-200';
+  if (isOver && !canDrop) bgClass = 'bg-gray-500';
 
   return (
     <div
       ref={drop as any}
-      className={`w-full h-24 border border-gray-300 flex items-center justify-center relative ${bgClass} transition-colors duration-200`}
+      className={`w-full h-24 flex items-center justify-center relative rounded-lg shadow-md transition-all duration-300 ease-in-out ${bgClass}`}
     >
-      <span className="absolute top-1 left-1 text-[10px] text-gray-400 uppercase">{tile.zone}</span>
+      <span className="absolute top-1 left-1 text-[10px] text-gray-500 uppercase">{tile.zone}</span>
       {children}
     </div>
   );
