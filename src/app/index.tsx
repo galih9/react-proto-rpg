@@ -7,8 +7,9 @@ import { useGameLogic } from "./hooks/useGameLogic";
 // Components
 import { GameTile } from "./components/GameTile";
 import { DraggableUnit } from "./components/DraggableUnit";
-import { ActionPanel } from "./components/ActionPanel";
 import { BattleLog } from "./components/BattleLog";
+import { FloatingActionMenu } from "./components/FloatingActionMenu"; // <--- New Import
+import { Popup } from "./components/Popup";
 
 export default function App() {
   const [tiles] = useState(createGrid());
@@ -18,14 +19,21 @@ export default function App() {
     units,
     turnPoints,
     currentActor,
-    enemies,
+    // enemies, // Not needed directly anymore in App, managed by logic/components
     attackingUnitId,
     hitTargetId,
-    logs, // <--- Added hitTargetId
+    logs,
+    interactionState, // <--- New State
     moveUnit,
     initializeGame,
     startBattle,
-    handleAttack,
+    // handleAttack, // Replaced by flow
+    handleGuard,
+    handleWait,
+    openSkillsMenu,
+    enterTargetingMode,
+    cancelInteraction,
+    handleUnitClick
   } = useGameLogic();
 
   return (
@@ -75,13 +83,22 @@ export default function App() {
 
         {/* --- BOARD --- */}
         <div
-          className="grid grid-cols-5 gap-2 bg-slate-900 p-4 rounded shadow-2xl mb-4"
+          className="grid grid-cols-5 gap-2 bg-slate-900 p-4 rounded shadow-2xl mb-4 relative" // Added relative for positioning if needed
           style={{ width: "600px" }}
         >
           {tiles.map((tile, i) => {
             const unitOnTile = units.find(
               (u) => u.x === tile.x && u.y === tile.y && !u.isDead
             );
+
+            // Check if this unit is the current actor to show the menu
+            const isCurrentActor = phase === "PLAYER_TURN" && currentActor?.id === unitOnTile?.id;
+
+            // Check if this unit is a valid target in targeting mode
+            const isTargetable =
+                interactionState.mode === "TARGETING" &&
+                unitOnTile?.type === "ENEMY";
+
             return (
               <GameTile key={i} tile={tile} moveUnit={moveUnit} phase={phase}>
                 {unitOnTile && (
@@ -92,7 +109,21 @@ export default function App() {
                       currentActor?.id === unitOnTile.id
                     }
                     isAttacking={attackingUnitId === unitOnTile.id}
-                    isHit={hitTargetId === unitOnTile.id} // <--- Pass the prop here!
+                    isHit={hitTargetId === unitOnTile.id}
+                    isTargetable={!!isTargetable} // <--- Pass targetable state
+                    onClick={() => handleUnitClick(unitOnTile.id)} // <--- Pass click handler
+                  />
+                )}
+
+                {/* --- FLOATING MENU --- */}
+                {isCurrentActor && (
+                  <FloatingActionMenu
+                    currentActor={currentActor}
+                    interactionState={interactionState}
+                    onGuard={handleGuard}
+                    onWait={handleWait}
+                    onOpenSkills={openSkillsMenu}
+                    onSelectSkill={enterTargetingMode}
                   />
                 )}
               </GameTile>
@@ -112,18 +143,25 @@ export default function App() {
                   isTurn={false}
                   isAttacking={false}
                   isHit={false}
+                  isTargetable={false}
                 />
               ))}
           </div>
         )}
 
-        {/* --- ACTIONS --- */}
-        {phase === "PLAYER_TURN" && currentActor && (
-          <ActionPanel
-            currentActor={currentActor}
-            enemies={enemies}
-            onAttack={handleAttack}
-          />
+        {/* --- CANCEL BUTTON (Floating Bottom Right) --- */}
+        {interactionState.mode !== "MENU" && phase === "PLAYER_TURN" && (
+            <div className="fixed bottom-8 right-8 z-50">
+                <button
+                    onClick={cancelInteraction}
+                    className="bg-red-500 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    CANCEL
+                </button>
+            </div>
         )}
 
         {/* --- ENEMY TURN MESSAGE --- */}

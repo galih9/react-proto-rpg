@@ -32,3 +32,10 @@ export interface LogEntry {
   id: number;
   message: string;
 }
+
+export type InteractionMode = "MENU" | "SKILLS" | "TARGETING";
+
+export interface InteractionState {
+  mode: InteractionMode;
+  selectedSkill: Element | null;
+}
