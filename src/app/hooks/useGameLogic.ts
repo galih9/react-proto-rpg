@@ -47,9 +47,13 @@ export const useGameLogic = () => {
     );
     if (activePlayers.length === 0) {
       addLog("GAME OVER - YOU LOST");
-      setPhase("START");
+      setPhase("DEFEAT");
       return;
     }
+
+    // Reset guarding status for all player units at the start of their turn
+    setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
+
     setPhase("PLAYER_TURN");
     const points = activePlayers.length * 2;
     setTurnPoints(points);
@@ -61,7 +65,7 @@ export const useGameLogic = () => {
     const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
     if (activeEnemies.length === 0) {
       addLog("VICTORY - ALL ENEMIES DEFEATED");
-      setPhase("START");
+      setPhase("VICTORY");
       return;
     }
     setPhase("ENEMY_TURN");
@@ -124,7 +128,11 @@ export const useGameLogic = () => {
 
     // 3. Resolve Damage (Delayed for visual sync)
     setTimeout(() => {
-      const damage = isWeakness ? 20 : 10;
+      let damage = isWeakness ? 20 : 10;
+      if (target.isGuarding) {
+        damage = Math.floor(damage / 2); // 50% damage reduction
+        addLog(`${target.id} is guarding! Damage reduced.`);
+      }
 
       // Update HP
       setUnits((prev) =>
@@ -154,7 +162,7 @@ export const useGameLogic = () => {
 
   // --- PLAYER INPUT ---
   const handlePlayerAttack = (targetId: string, skillElement: Element) => {
-    if (turnPoints <= 0 || phase !== "PLAYER_TURN") return;
+    if (turnPoints < 2 || phase !== "PLAYER_TURN") return;
 
     const activePlayers = units.filter(
       (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
@@ -180,6 +188,53 @@ export const useGameLogic = () => {
         setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
       }
     }, 700); // Wait slightly longer than the attack animation
+  };
+
+  const handleGuard = () => {
+    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+
+    if (!currentActor) return;
+
+    setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
+    addLog(`${currentActor.id} is guarding.`);
+
+    const newPoints = turnPoints - 1;
+    setTurnPoints(newPoints);
+
+    setTimeout(() => {
+      if (newPoints <= 0) {
+        startPassivePhase("ENEMY");
+      } else {
+        setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
+      }
+    }, 200);
+  };
+
+  const handleWait = () => {
+    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+
+    addLog(`${currentActor.id} waits.`);
+
+    const newPoints = turnPoints - 1;
+    setTurnPoints(newPoints);
+
+    setTimeout(() => {
+      if (newPoints <= 0) {
+        startPassivePhase("ENEMY");
+      } else {
+        setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
+      }
+    }, 200);
   };
 
   // --- ENEMY AI ---
@@ -254,11 +309,13 @@ export const useGameLogic = () => {
     currentActor,
     enemies,
     attackingUnitId,
-    hitTargetId, // <--- Export this
+    hitTargetId,
     logs,
     moveUnit,
     initializeGame,
     startBattle,
     handleAttack: handlePlayerAttack,
+    handleGuard,
+    handleWait,
   };
 };

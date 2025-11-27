@@ -30,47 +30,48 @@ export default function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-slate-800 text-white p-8 flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-4">React RPG Prototype</h1>
+      <div className="min-h-screen bg-white text-gray-800 p-8 flex flex-col items-center relative">
+        {phase === "START" && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <button
+              onClick={initializeGame}
+              className="bg-green-500 text-white px-8 py-4 rounded-lg font-bold text-2xl shadow-lg"
+            >
+              START GAME
+            </button>
+          </div>
+        )}
 
         {/* --- HEADER --- */}
-        <div className="w-full max-w-4xl flex justify-between mb-4 bg-slate-700 p-4 rounded">
-          <div>
-            <p className="font-bold">
-              Phase: <span className="text-yellow-400">{phase}</span>
-            </p>
-            {(phase === "PLAYER_TURN" || phase === "ENEMY_TURN") && (
-              <p>
-                Turn Points:{" "}
-                <span
-                  className={
-                    phase === "PLAYER_TURN" ? "text-cyan-400" : "text-red-400"
-                  }
-                >
-                  {turnPoints}
-                </span>
+        {phase !== "START" && (
+          <div className="w-full max-w-4xl flex justify-between mb-4 p-2 rounded">
+            <div>
+              <p className="font-bold text-lg">
+                Phase: <span className="text-yellow-600">{phase}</span>
               </p>
-            )}
-          </div>
-          <div>
-            {phase === "START" && (
-              <button
-                onClick={initializeGame}
-                className="bg-green-500 px-6 py-2 rounded font-bold"
-              >
-                START GAME
-              </button>
-            )}
+              {(phase === "PLAYER_TURN" || phase === "ENEMY_TURN") && (
+                <p>
+                  Turn Points:{" "}
+                  <span
+                    className={
+                      phase === "PLAYER_TURN" ? "text-cyan-600" : "text-red-600"
+                    }
+                  >
+                    {turnPoints}
+                  </span>
+                </p>
+              )}
+            </div>
             {phase === "SETUP" && (
               <button
                 onClick={startBattle}
-                className="bg-red-500 px-6 py-2 rounded font-bold"
+                className="bg-red-500 text-white px-6 py-2 rounded font-bold"
               >
                 ENTER BATTLE
               </button>
             )}
           </div>
-        </div>
+        )}
 
         {/* --- BOARD --- */}
         <div
@@ -134,6 +135,22 @@ export default function App() {
 
         {/* --- LOGS --- */}
         <BattleLog logs={logs} />
+
+        {/* --- POPUPS --- */}
+        {phase === "VICTORY" && (
+          <Popup
+            title="Victory!"
+            message="You have defeated all enemies."
+            onRestart={initializeGame}
+          />
+        )}
+        {phase === "DEFEAT" && (
+          <Popup
+            title="Defeat!"
+            message="All your units have been defeated."
+            onRestart={initializeGame}
+          />
+        )}
       </div>
     </DndProvider>
   );
