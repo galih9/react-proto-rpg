@@ -123,10 +123,11 @@ export const useGameLogic = () => {
 
     // 2. Calculation
     let cost = 2;
+    const isWeakness = skillElement !== 'NORMAL' && target.weakness === skillElement;
+
     if (skillElement === 'NORMAL') {
       cost = 1;
     } else {
-      const isWeakness = target.weakness === skillElement;
       if (isWeakness) cost = 1;
     }
 
@@ -242,52 +243,6 @@ export const useGameLogic = () => {
     advanceTurn(1);
   };
 
-  const handleGuard = () => {
-    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
-
-    const activePlayers = units.filter(
-      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
-    );
-    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
-
-    if (!currentActor) return;
-
-    setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
-    addLog(`${currentActor.id} is guarding.`);
-
-    const newPoints = turnPoints - 1;
-    setTurnPoints(newPoints);
-
-    setTimeout(() => {
-      if (newPoints <= 0) {
-        startPassivePhase("ENEMY");
-      } else {
-        setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
-      }
-    }, 200);
-  };
-
-  const handleWait = () => {
-    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
-
-    const activePlayers = units.filter(
-      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
-    );
-    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
-
-    addLog(`${currentActor.id} waits.`);
-
-    const newPoints = turnPoints - 1;
-    setTurnPoints(newPoints);
-
-    setTimeout(() => {
-      if (newPoints <= 0) {
-        startPassivePhase("ENEMY");
-      } else {
-        setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
-      }
-    }, 200);
-  };
 
   // --- ENEMY AI ---
   const processEnemyTurn = async (startingPoints: number, _enemies: Unit[]) => {

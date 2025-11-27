@@ -9,6 +9,7 @@ import { GameTile } from "./components/GameTile";
 import { DraggableUnit } from "./components/DraggableUnit";
 import { ActionPanel } from "./components/ActionPanel";
 import { BattleLog } from "./components/BattleLog";
+import { Popup } from "./components/Popup";
 
 export default function App() {
   const [tiles] = useState(createGrid());
@@ -26,6 +27,8 @@ export default function App() {
     initializeGame,
     startBattle,
     handleAttack,
+    handleGuard,
+    handleWait,
   } = useGameLogic();
 
   return (
@@ -123,6 +126,8 @@ export default function App() {
             currentActor={currentActor}
             enemies={enemies}
             onAttack={handleAttack}
+            onGuard={handleGuard}
+            onWait={handleWait}
           />
         )}
 
