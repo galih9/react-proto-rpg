@@ -3,9 +3,11 @@ export type Phase =
   | "SETUP"
   | "PLAYER_TURN"
   | "ENEMY_TURN"
-  | "PASSIVE";
+  | "PASSIVE"
+  | "VICTORY"
+  | "DEFEAT";
 export type UnitType = "PLAYER" | "ENEMY";
-export type Element = "FIRE" | "ICE" | "WIND" | "PHYSICAL";
+export type Element = "FIRE" | "ICE" | "WIND" | "PHYSICAL" | "NORMAL";
 
 export interface Unit {
   id: string;
@@ -17,6 +19,7 @@ export interface Unit {
   element: Element;
   weakness: Element;
   isDead: boolean;
+  isGuarding?: boolean;
 }
 
 export interface TileData {

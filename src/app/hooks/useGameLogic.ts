@@ -47,9 +47,13 @@ export const useGameLogic = () => {
     );
     if (activePlayers.length === 0) {
       addLog("GAME OVER - YOU LOST");
-      setPhase("START");
+      setPhase("DEFEAT");
       return;
     }
+
+    // Reset guarding status for all player units at the start of their turn
+    setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
+
     setPhase("PLAYER_TURN");
     const points = activePlayers.length * 2;
     setTurnPoints(points);
@@ -61,7 +65,7 @@ export const useGameLogic = () => {
     const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
     if (activeEnemies.length === 0) {
       addLog("VICTORY - ALL ENEMIES DEFEATED");
-      setPhase("START");
+      setPhase("VICTORY");
       return;
     }
     setPhase("ENEMY_TURN");
@@ -119,12 +123,20 @@ export const useGameLogic = () => {
 
     // 2. Calculation
     let cost = 2;
-    const isWeakness = target.weakness === skillElement;
-    if (isWeakness) cost = 1;
+    if (skillElement === 'NORMAL') {
+      cost = 1;
+    } else {
+      const isWeakness = target.weakness === skillElement;
+      if (isWeakness) cost = 1;
+    }
 
     // 3. Resolve Damage (Delayed for visual sync)
     setTimeout(() => {
-      const damage = isWeakness ? 20 : 10;
+      let damage = skillElement === 'NORMAL' ? 10 : (target.weakness === skillElement ? 20 : 10);
+      if (target.isGuarding) {
+        damage = Math.floor(damage / 2); // 50% damage reduction
+        addLog(`${target.id} is guarding! Damage reduced.`);
+      }
 
       // Update HP
       setUnits((prev) =>
@@ -154,7 +166,18 @@ export const useGameLogic = () => {
 
   // --- PLAYER INPUT ---
   const handlePlayerAttack = (targetId: string, skillElement: Element) => {
-    if (turnPoints <= 0 || phase !== "PLAYER_TURN") return;
+    const target = units.find((u) => u.id === targetId);
+    if (!target) return;
+
+    let cost = 2;
+    if (skillElement === "NORMAL") {
+      cost = 1;
+    } else {
+      const isWeakness = target.weakness === skillElement;
+      if (isWeakness) cost = 1;
+    }
+
+    if (turnPoints < cost || phase !== "PLAYER_TURN") return;
 
     const activePlayers = units.filter(
       (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
@@ -163,23 +186,60 @@ export const useGameLogic = () => {
 
     if (!attacker) return;
 
-    const newPoints = executeAttack(
+    executeAttack(
       attacker.id,
       targetId,
       skillElement,
       turnPoints,
       true
     );
+
+    advanceTurn(cost);
+  };
+
+  const advanceTurn = (pointsSpent: number) => {
+    const newPoints = turnPoints - pointsSpent;
     setTurnPoints(newPoints);
 
-    // Turn Cycle Logic
     setTimeout(() => {
       if (newPoints <= 0) {
-        startPassivePhase("ENEMY"); // Pass to Enemy next
+        startPassivePhase("ENEMY");
       } else {
+        const activePlayers = units.filter(
+          (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+        );
         setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
       }
-    }, 700); // Wait slightly longer than the attack animation
+    }, 200);
+  };
+
+  const handleGuard = () => {
+    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+
+    if (!currentActor) return;
+
+    setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
+    addLog(`${currentActor.id} is guarding.`);
+
+    advanceTurn(1);
+  };
+
+  const handleWait = () => {
+    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+
+    addLog(`${currentActor.id} waits.`);
+
+    advanceTurn(1);
   };
 
   // --- ENEMY AI ---
@@ -254,11 +314,13 @@ export const useGameLogic = () => {
     currentActor,
     enemies,
     attackingUnitId,
-    hitTargetId, // <--- Export this
+    hitTargetId,
     logs,
     moveUnit,
     initializeGame,
     startBattle,
     handleAttack: handlePlayerAttack,
+    handleGuard,
+    handleWait,
   };
 };
