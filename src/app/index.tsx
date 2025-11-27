@@ -32,7 +32,7 @@ export default function App() {
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-white text-gray-800 p-8 flex flex-col items-center relative">
         {phase === "START" && (
-          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <button
               onClick={initializeGame}
               className="bg-green-500 text-white px-8 py-4 rounded-lg font-bold text-2xl shadow-lg"
