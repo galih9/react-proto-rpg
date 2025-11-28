@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { Phase, Unit, Element, LogEntry } from "../types";
+import { useState, useEffect } from "react";
+import type { Phase, Unit, Element, LogEntry, InteractionState } from "../types";
 import { INITIAL_UNITS } from "../constants";
 
 export const useGameLogic = () => {
@@ -7,10 +7,16 @@ export const useGameLogic = () => {
   const [units, setUnits] = useState<Unit[]>(INITIAL_UNITS);
   const [turnPoints, setTurnPoints] = useState(0);
 
+  // Interaction State (For new UI flow)
+  const [interactionState, setInteractionState] = useState<InteractionState>({
+    mode: "MENU",
+    selectedSkill: null,
+  });
+
   // Target Selection & Animation States
   const [currentActorIndex, setCurrentActorIndex] = useState(0);
   const [attackingUnitId, setAttackingUnitId] = useState<string | null>(null);
-  const [hitTargetId, setHitTargetId] = useState<string | null>(null); // <--- For bounce animation
+  const [hitTargetId, setHitTargetId] = useState<string | null>(null);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
@@ -51,8 +57,9 @@ export const useGameLogic = () => {
       return;
     }
 
-    // Reset guarding status for all player units at the start of their turn
+    // Reset guarding status & interaction state
     setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
+    setInteractionState({ mode: "MENU", selectedSkill: null });
 
     setPhase("PLAYER_TURN");
     const points = activePlayers.length * 2;
@@ -160,34 +167,62 @@ export const useGameLogic = () => {
     return currentPoints - cost;
   };
 
-  // --- PLAYER INPUT ---
-  const handlePlayerAttack = (targetId: string, skillElement: Element) => {
-    if (turnPoints < 2 || phase !== "PLAYER_TURN") return;
+  // --- INTERACTION HELPER FUNCTIONS ---
+  const openSkillsMenu = () => {
+    setInteractionState({ mode: "SKILLS", selectedSkill: null });
+  };
+
+  const enterTargetingMode = (skill: Element) => {
+    setInteractionState({ mode: "TARGETING", selectedSkill: skill });
+  };
+
+  const cancelInteraction = () => {
+    setInteractionState({ mode: "MENU", selectedSkill: null });
+  };
+
+  // --- PLAYER ACTIONS ---
+
+  // Called when clicking an ENEMY unit in TARGETING mode
+  const handleUnitClick = (unitId: string) => {
+    if (interactionState.mode !== "TARGETING" || !interactionState.selectedSkill) return;
+
+    // Validate turn points
+    if (turnPoints < 2 && interactionState.selectedSkill !== "PHYSICAL") { // Example check, or rely on executeAttack check
+       // Basic checks are done before allowing to click button usually, but safe to check here
+    }
 
     const activePlayers = units.filter(
       (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
     );
     const attacker = activePlayers[currentActorIndex % activePlayers.length];
 
-    if (!attacker) return;
+    // Ensure target is valid (Enemy)
+    const target = units.find(u => u.id === unitId);
+    if(!attacker || !target || target.type !== 'ENEMY') return;
 
+    // Execute
     const newPoints = executeAttack(
       attacker.id,
-      targetId,
-      skillElement,
+      target.id,
+      interactionState.selectedSkill,
       turnPoints,
       true
     );
     setTurnPoints(newPoints);
 
+    // Reset UI
+    setInteractionState({ mode: "MENU", selectedSkill: null });
+
     // Turn Cycle Logic
     setTimeout(() => {
       if (newPoints <= 0) {
-        startPassivePhase("ENEMY"); // Pass to Enemy next
+        startPassivePhase("ENEMY");
       } else {
         setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
+        // Also reset UI for next actor just in case
+        setInteractionState({ mode: "MENU", selectedSkill: null });
       }
-    }, 700); // Wait slightly longer than the attack animation
+    }, 700);
   };
 
   const handleGuard = () => {
@@ -302,6 +337,14 @@ export const useGameLogic = () => {
   const currentActor = activePlayers[currentActorIndex % activePlayers.length];
   const enemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
 
+  // Watch for actor change to reset interaction state
+  useEffect(() => {
+    if (currentActor) {
+        setInteractionState({ mode: "MENU", selectedSkill: null });
+    }
+  }, [currentActor?.id]);
+
+
   return {
     phase,
     units,
@@ -311,11 +354,15 @@ export const useGameLogic = () => {
     attackingUnitId,
     hitTargetId,
     logs,
+    interactionState, // <--- Export
     moveUnit,
     initializeGame,
     startBattle,
-    handleAttack: handlePlayerAttack,
     handleGuard,
     handleWait,
+    openSkillsMenu, // <--- Export
+    enterTargetingMode, // <--- Export
+    cancelInteraction, // <--- Export
+    handleUnitClick, // <--- Export
   };
 };
