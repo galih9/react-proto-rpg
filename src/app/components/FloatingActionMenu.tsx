@@ -4,6 +4,7 @@ import type { InteractionState, Unit, Element } from '../types';
 interface Props {
   currentActor: Unit;
   interactionState: InteractionState;
+  turnPoints: number;
   onGuard: () => void;
   onWait: () => void;
   onOpenSkills: () => void;
@@ -13,13 +14,14 @@ interface Props {
 export const FloatingActionMenu: React.FC<Props> = ({
   currentActor,
   interactionState,
+  turnPoints,
   onGuard,
   onWait,
   onOpenSkills,
   onSelectSkill,
 }) => {
   // Common button style
-  const btnClass = "block w-full text-left bg-white border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 rounded mb-1 shadow-sm font-sans";
+  const btnClass = "block w-full text-left bg-white border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 rounded mb-1 shadow-sm font-sans disabled:opacity-50 disabled:cursor-not-allowed";
 
   if (interactionState.mode === 'MENU') {
     return (
@@ -43,6 +45,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
         </button>
         <button
             onClick={() => onSelectSkill(currentActor.element)}
+            disabled={turnPoints < 2}
             className={btnClass}
         >
             {currentActor.element} (2p)

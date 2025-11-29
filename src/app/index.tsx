@@ -120,6 +120,7 @@ export default function App() {
                   <FloatingActionMenu
                     currentActor={currentActor}
                     interactionState={interactionState}
+                    turnPoints={turnPoints}
                     onGuard={handleGuard}
                     onWait={handleWait}
                     onOpenSkills={openSkillsMenu}

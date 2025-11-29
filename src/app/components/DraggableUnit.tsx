@@ -35,7 +35,7 @@ export const DraggableUnit: React.FC<Props> = ({
     : "border-2 border-white";
 
   const transformStyle = isAttacking
-    ? { transform: "translateX(50px) scale(1.1)" }
+    ? { transform: `translateX(${unit.type === "ENEMY" ? -50 : 50}px) scale(1.1)` }
     : { transform: "translateX(0) scale(1)" };
 
   // Hit Animation Class
