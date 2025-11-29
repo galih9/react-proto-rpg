@@ -33,7 +33,7 @@ export interface LogEntry {
   message: string;
 }
 
-export type InteractionMode = "MENU" | "SKILLS" | "TARGETING";
+export type InteractionMode = "MENU" | "SKILLS" | "TARGETING" | "MOVING";
 
 export interface InteractionState {
   mode: InteractionMode;

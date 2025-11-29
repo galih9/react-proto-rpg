@@ -7,6 +7,7 @@ interface Props {
   turnPoints: number;
   onGuard: () => void;
   onWait: () => void;
+  onMove: () => void;
   onOpenSkills: () => void;
   onSelectSkill: (skill: Element) => void;
 }
@@ -17,6 +18,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
   turnPoints,
   onGuard,
   onWait,
+  onMove,
   onOpenSkills,
   onSelectSkill,
 }) => {
@@ -29,6 +31,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
         <button onClick={onOpenSkills} className={btnClass}>Attack</button>
         <button onClick={onGuard} className={btnClass}>Guard</button>
         <button onClick={onWait} className={btnClass}>Wait</button>
+        <button onClick={onMove} disabled={turnPoints < 1} className={btnClass}>Move (1p)</button>
       </div>
     );
   }
@@ -54,15 +57,18 @@ export const FloatingActionMenu: React.FC<Props> = ({
     );
   }
 
-  // In TARGETING mode, the menu might be hidden or show instructions.
-  // The user asked for "Attack -> Skills -> Target".
-  // Usually when targeting, the menu disappears or shows "Select Target".
-  // Based on the request, the interaction moves to the board.
-  // We can render a small tooltip or nothing here.
   if (interactionState.mode === 'TARGETING') {
       return (
         <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-yellow-100/90 backdrop-blur p-2 rounded shadow-xl border border-yellow-300 text-center">
             <span className="text-xs font-bold text-yellow-800">Select Target</span>
+        </div>
+      );
+  }
+
+  if (interactionState.mode === 'MOVING') {
+      return (
+        <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-green-100/90 backdrop-blur p-2 rounded shadow-xl border border-green-300 text-center">
+            <span className="text-xs font-bold text-green-800">Select Tile</span>
         </div>
       );
   }

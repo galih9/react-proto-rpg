@@ -268,6 +268,47 @@ export const useGameLogic = () => {
     }, 200);
   };
 
+  const handleMoveInitiate = () => {
+    if (turnPoints < 1) return;
+    setInteractionState({ mode: "MOVING", selectedSkill: null });
+  };
+
+  const handleTileClick = (x: number, y: number) => {
+    if (interactionState.mode !== "MOVING" || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+    if (!currentActor || currentActor.x === null || currentActor.y === null) return;
+
+    // Validate Move (1 tile radius)
+    const dx = Math.abs(x - currentActor.x);
+    const dy = Math.abs(y - currentActor.y);
+    const isAdjacent = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
+
+    // Validate Occupancy
+    const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
+
+    if (isAdjacent && !isOccupied) {
+        // Execute Move
+        moveUnit(currentActor.id, x, y);
+        addLog(`${currentActor.id} moves to (${x}, ${y}).`);
+
+        const newPoints = turnPoints - 1;
+        setTurnPoints(newPoints);
+        setInteractionState({ mode: "MENU", selectedSkill: null });
+
+        setTimeout(() => {
+            if (newPoints <= 0) {
+                startPassivePhase("ENEMY_TURN");
+            } else {
+                setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
+            }
+        }, 300);
+    }
+  };
+
   const handleWait = () => {
     if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
 
@@ -383,6 +424,8 @@ export const useGameLogic = () => {
     startBattle,
     handleGuard,
     handleWait,
+    handleMoveInitiate, // <--- Export
+    handleTileClick, // <--- Export
     openSkillsMenu, // <--- Export
     enterTargetingMode, // <--- Export
     cancelInteraction, // <--- Export
