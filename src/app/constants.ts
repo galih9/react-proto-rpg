@@ -6,7 +6,7 @@ export const DRAG_TYPE = "UNIT";
 
 export const INITIAL_UNITS: Unit[] = [
   {
-    id: "p1",
+    id: "p1", // Me
     type: "PLAYER",
     x: null,
     y: null,
@@ -17,7 +17,7 @@ export const INITIAL_UNITS: Unit[] = [
     isDead: false,
   },
   {
-    id: "p2",
+    id: "p2", // Pet 1
     type: "PLAYER",
     x: null,
     y: null,
@@ -28,7 +28,7 @@ export const INITIAL_UNITS: Unit[] = [
     isDead: false,
   },
   {
-    id: "e1",
+    id: "e1", // Pet 2 (Enemy 1)
     type: "ENEMY",
     x: 4,
     y: 1,
@@ -39,12 +39,12 @@ export const INITIAL_UNITS: Unit[] = [
     isDead: false,
   },
   {
-    id: "e2",
+    id: "e2", // Pet 3 (Enemy 2 with more HP)
     type: "ENEMY",
     x: 3,
     y: 2,
-    hp: 80,
-    maxHp: 80,
+    hp: 120, // Increased HP
+    maxHp: 120,
     element: "WIND",
     weakness: "PHYSICAL",
     isDead: false,
