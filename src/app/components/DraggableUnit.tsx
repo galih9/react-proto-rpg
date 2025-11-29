@@ -2,15 +2,26 @@ import React from "react";
 import { useDrag } from "react-dnd";
 import type { Unit } from "../types";
 import { DRAG_TYPE } from "../constants";
+import { HealthBar } from "./HealthBar";
 
 interface Props {
   unit: Unit;
   isTurn: boolean;
   isAttacking: boolean;
   isHit: boolean;
-  isTargetable: boolean; // <--- New Prop: Valid target in targeting mode
-  onClick?: () => void;  // <--- New Prop: Click handler
+  isTargetable: boolean;
+  onClick?: () => void;
 }
+
+const getUnitDisplayInfo = (id: string) => {
+  switch (id) {
+    case 'p1': return { name: 'Me', char: 'M' };
+    case 'p2': return { name: 'Pet 1', char: 'P' };
+    case 'e1': return { name: 'Pet 2', char: 'P' };
+    case 'e2': return { name: 'Pet 3', char: 'P' };
+    default: return { name: id, char: id.charAt(0).toUpperCase() };
+  }
+};
 
 export const DraggableUnit: React.FC<Props> = ({
   unit,
@@ -23,7 +34,7 @@ export const DraggableUnit: React.FC<Props> = ({
   const [{ isDragging }, drag] = useDrag(() => ({
     type: DRAG_TYPE,
     item: { id: unit.id },
-    canDrag: unit.type === "PLAYER", // Only players are draggable (setup phase usually)
+    canDrag: unit.type === "PLAYER",
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -38,11 +49,10 @@ export const DraggableUnit: React.FC<Props> = ({
     ? { transform: `translateX(${unit.type === "ENEMY" ? -50 : 50}px) scale(1.1)` }
     : { transform: "translateX(0) scale(1)" };
 
-  // Hit Animation Class
   const hitClass = isHit ? "animate-bounce-hit" : "";
-
-  // Targetable Cursor
   const cursorClass = isTargetable ? "cursor-crosshair hover:ring-4 hover:ring-red-400" : "cursor-pointer";
+
+  const { name, char } = getUnitDisplayInfo(unit.id);
 
   return (
     <div
@@ -55,7 +65,7 @@ export const DraggableUnit: React.FC<Props> = ({
         ${isDragging ? "opacity-50" : "opacity-100"}
       `}
     >
-      {/* Target Indicator Arrow */}
+      {/* Target Indicator */}
       {isTargetable && (
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-red-500 animate-bounce">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -64,11 +74,17 @@ export const DraggableUnit: React.FC<Props> = ({
         </div>
       )}
 
-      {unit.type === "PLAYER" ? "P" : "E"}
+      {/* Character Letter */}
+      {char}
 
-      {/* HP Bar / Text */}
-      <div className="absolute -bottom-6 text-xs text-black font-mono w-max bg-white/80 px-1 rounded">
-        HP: {unit.hp}
+      {/* Name and Health Bar Container */}
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 z-20 w-28 pointer-events-none">
+         <div className="bg-white/80 border border-slate-300 rounded-lg p-1 shadow-sm flex flex-col gap-1 backdrop-blur-sm">
+             <div className="text-[10px] font-bold text-slate-800 leading-none text-left px-0.5">
+                {name}
+             </div>
+             <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
+         </div>
       </div>
     </div>
   );
