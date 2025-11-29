@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Phase, Unit, Element, LogEntry, InteractionState } from "../types";
 import { INITIAL_UNITS } from "../constants";
 
@@ -6,6 +6,15 @@ export const useGameLogic = () => {
   const [phase, setPhase] = useState<Phase>("START");
   const [units, setUnits] = useState<Unit[]>(INITIAL_UNITS);
   const [turnPoints, setTurnPoints] = useState(0);
+
+  // Ref to always access latest units in async operations
+  const unitsRef = useRef<Unit[]>(INITIAL_UNITS);
+
+  // Sync Ref
+  useEffect(() => {
+    unitsRef.current = units;
+  }, [units]);
+
 
   // Interaction State (For new UI flow)
   const [interactionState, setInteractionState] = useState<InteractionState>({
@@ -43,53 +52,56 @@ export const useGameLogic = () => {
       alert("Place at least one character!");
       return;
     }
-    startPlayerTurn();
-  };
-
-  // --- PHASE MANAGEMENT ---
-  const startPlayerTurn = () => {
-    const activePlayers = units.filter(
-      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
-    );
-    if (activePlayers.length === 0) {
-      addLog("GAME OVER - YOU LOST");
-      setPhase("DEFEAT");
-      return;
-    }
-
-    // Reset guarding status & interaction state
-    setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
-    setInteractionState({ mode: "MENU", selectedSkill: null });
-
+    // Instead of calling startPlayerTurn directly, we set phase
     setPhase("PLAYER_TURN");
-    const points = activePlayers.length * 2;
-    setTurnPoints(points);
-    setCurrentActorIndex(0);
-    addLog(`>>> PLAYER TURN (Points: ${points})`);
   };
 
-  const startEnemyTurn = () => {
-    const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
-    if (activeEnemies.length === 0) {
-      addLog("VICTORY - ALL ENEMIES DEFEATED");
-      setPhase("VICTORY");
-      return;
+  // --- PHASE MANAGEMENT (useEffect driven) ---
+  useEffect(() => {
+    // We use units from the scope here, which is fine because this effect re-runs when phase changes,
+    // and phase changes usually happen after state updates.
+    // However, for extra safety, we can use unitsRef.current, but React state 'units' is safer for render logic.
+
+    if (phase === "PLAYER_TURN") {
+      const activePlayers = units.filter(
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+      );
+      if (activePlayers.length === 0) {
+        addLog("GAME OVER - YOU LOST");
+        setPhase("DEFEAT");
+        return;
+      }
+
+      // Reset guarding status & interaction state
+      setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
+      setInteractionState({ mode: "MENU", selectedSkill: null });
+
+      const points = activePlayers.length * 2;
+      setTurnPoints(points);
+      setCurrentActorIndex(0);
+      addLog(`>>> PLAYER TURN (Points: ${points})`);
+    } else if (phase === "ENEMY_TURN") {
+      const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
+      if (activeEnemies.length === 0) {
+        addLog("VICTORY - ALL ENEMIES DEFEATED");
+        setPhase("VICTORY");
+        return;
+      }
+      const points = activeEnemies.length * 2;
+      setTurnPoints(points);
+      addLog(`>>> ENEMY TURN (Points: ${points})`);
+
+      // Trigger AI Logic
+      processEnemyTurn(points);
     }
-    setPhase("ENEMY_TURN");
-    const points = activeEnemies.length * 2;
-    setTurnPoints(points);
-    addLog(`>>> ENEMY TURN (Points: ${points})`);
+  }, [phase]);
 
-    // Trigger AI Logic
-    processEnemyTurn(points, activeEnemies);
-  };
-
-  const startPassivePhase = (nextPhase: "PLAYER" | "ENEMY") => {
+  const startPassivePhase = (nextPhase: "PLAYER_TURN" | "ENEMY_TURN") => {
     setPhase("PASSIVE");
 
     // Determine who gets healed based on who just finished their turn
     // If next is ENEMY, that means Player just finished -> Heal Player
-    const healingType = nextPhase === "ENEMY" ? "PLAYER" : "ENEMY";
+    const healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY";
     addLog(`--- Passive Phase (${healingType} Heal) ---`);
 
     setTimeout(() => {
@@ -104,11 +116,8 @@ export const useGameLogic = () => {
       );
 
       // Transition to next active phase
-      if (nextPhase === "ENEMY") {
-        startEnemyTurn();
-      } else {
-        startPlayerTurn();
-      }
+      // We set phase here, allowing useEffect to pick it up with updated units state
+      setPhase(nextPhase);
     }, 1500);
   };
 
@@ -120,8 +129,17 @@ export const useGameLogic = () => {
     currentPoints: number,
     _isPlayer: boolean
   ) => {
-    const attacker = units.find((u) => u.id === attackerId);
-    const target = units.find((u) => u.id === targetId);
+    // Use Ref to find current state of units (especially for AI chain)
+    // Actually, 'units' state in scope might be stale in AI loop.
+    // For safety, let's look up in the ref if available, or just map carefully.
+
+    // BUT, this function is used by UI click (Player) and AI (Enemy).
+    // Player click: 'units' scope is fresh.
+    // Enemy AI: 'units' scope is stale.
+    const currentUnits = unitsRef.current;
+
+    const attacker = currentUnits.find((u) => u.id === attackerId);
+    const target = currentUnits.find((u) => u.id === targetId);
 
     if (!attacker || !target) return currentPoints;
 
@@ -187,8 +205,8 @@ export const useGameLogic = () => {
     if (interactionState.mode !== "TARGETING" || !interactionState.selectedSkill) return;
 
     // Validate turn points
-    if (turnPoints < 2 && interactionState.selectedSkill !== "PHYSICAL") { // Example check, or rely on executeAttack check
-       // Basic checks are done before allowing to click button usually, but safe to check here
+    if (turnPoints < 2 && interactionState.selectedSkill !== "PHYSICAL") {
+       // Should be blocked by UI, but good safety
     }
 
     const activePlayers = units.filter(
@@ -216,7 +234,7 @@ export const useGameLogic = () => {
     // Turn Cycle Logic
     setTimeout(() => {
       if (newPoints <= 0) {
-        startPassivePhase("ENEMY");
+        startPassivePhase("ENEMY_TURN");
       } else {
         setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
         // Also reset UI for next actor just in case
@@ -243,7 +261,7 @@ export const useGameLogic = () => {
 
     setTimeout(() => {
       if (newPoints <= 0) {
-        startPassivePhase("ENEMY");
+        startPassivePhase("ENEMY_TURN");
       } else {
         setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
       }
@@ -265,7 +283,7 @@ export const useGameLogic = () => {
 
     setTimeout(() => {
       if (newPoints <= 0) {
-        startPassivePhase("ENEMY");
+        startPassivePhase("ENEMY_TURN");
       } else {
         setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
       }
@@ -273,7 +291,7 @@ export const useGameLogic = () => {
   };
 
   // --- ENEMY AI ---
-  const processEnemyTurn = async (startingPoints: number, _enemies: Unit[]) => {
+  const processEnemyTurn = async (startingPoints: number) => {
     let currentPoints = startingPoints;
     let enemyIndex = 0;
 
@@ -281,12 +299,15 @@ export const useGameLogic = () => {
     const performNextEnemyAction = () => {
       // Check if turn over
       if (currentPoints <= 0) {
-        startPassivePhase("PLAYER"); // Back to Player
+        startPassivePhase("PLAYER_TURN"); // Back to Player
         return;
       }
 
       // Check valid enemies remaining
-      const livingEnemies = units.filter(
+      // Use Ref to get latest state inside async loop
+      const currentUnits = unitsRef.current;
+
+      const livingEnemies = currentUnits.filter(
         (u) => u.type === "ENEMY" && !u.isDead
       );
       if (livingEnemies.length === 0) return; // Should be handled by win condition, but safety check
@@ -295,10 +316,11 @@ export const useGameLogic = () => {
       const attacker = livingEnemies[enemyIndex % livingEnemies.length];
 
       // Select Random Target (Alive Player)
-      const alivePlayers = units.filter(
+      const alivePlayers = currentUnits.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
       );
       if (alivePlayers.length === 0) return; // Game Over handled elsewhere
+
       const target =
         alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
@@ -331,6 +353,7 @@ export const useGameLogic = () => {
   };
 
   // Getters
+  // We use the state 'units' for rendering, not the ref
   const activePlayers = units.filter(
     (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
   );
