@@ -40,19 +40,16 @@ export const FloatingActionMenu: React.FC<Props> = ({
     return (
       <div className="absolute top-0 -right-4 translate-x-full z-20 w-40 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
         <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wide">Select Skill</div>
-        <button
-            onClick={() => onSelectSkill('PHYSICAL')}
+        {currentActor.skills.map((skill) => (
+          <button
+            key={skill}
+            onClick={() => onSelectSkill(skill)}
+            disabled={turnPoints < 2} // All skills now cost 2 base points
             className={btnClass}
-        >
-            Basic Attack (1p)
-        </button>
-        <button
-            onClick={() => onSelectSkill(currentActor.element)}
-            disabled={turnPoints < 2}
-            className={btnClass}
-        >
-            {currentActor.element} (2p)
-        </button>
+          >
+            {skill === 'PHYSICAL' ? 'Basic Attack' : skill} (2p)
+          </button>
+        ))}
       </div>
     );
   }
