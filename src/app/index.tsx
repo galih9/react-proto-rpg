@@ -103,7 +103,7 @@ export default function App() {
                          const dx = Math.abs(tile.x - currentActor.x!);
                          const dy = Math.abs(tile.y - currentActor.y!);
                          const isOccupied = units.some(u => u.x === tile.x && u.y === tile.y && !u.isDead);
-                         isValidMove = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0) && !isOccupied;
+                         isValidMove = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0) && !isOccupied && tile.x <= 2;
                     }
 
                     return (
