@@ -363,7 +363,7 @@ export const useGameLogic = () => {
       interactionState.selectedSkill
     );
 
-    setInteractionState({ mode: "MENU", selectedSkill: null });
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
 
     // 3. Handle Turn Cycle & Bonus with Delay
     setTimeout(() => {
@@ -382,11 +382,11 @@ export const useGameLogic = () => {
              const finalPoints = turnPointsRef.current;
 
              processTicksAndAdvance(() => {
+                setInteractionState({ mode: "MENU", selectedSkill: null });
                 if (finalPoints <= 0) {
                     startPassivePhase("ENEMY_TURN");
                 } else {
                     setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
-                    setInteractionState({ mode: "MENU", selectedSkill: null });
                 }
              });
         }, isWeakness ? 1000 : 200); // Wait longer if we triggered a gain animation
@@ -409,9 +409,11 @@ export const useGameLogic = () => {
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
 
     setTimeout(() => {
       processTicksAndAdvance(() => {
+          setInteractionState({ mode: "MENU", selectedSkill: null });
           if (newPoints <= 0) {
             startPassivePhase("ENEMY_TURN");
           } else {
@@ -447,10 +449,11 @@ export const useGameLogic = () => {
 
         const newPoints = turnPoints - 1;
         setTurnPoints(newPoints);
-        setInteractionState({ mode: "MENU", selectedSkill: null });
+        setInteractionState({ mode: "EXECUTING", selectedSkill: null });
 
         setTimeout(() => {
            processTicksAndAdvance(() => {
+                setInteractionState({ mode: "MENU", selectedSkill: null });
                 if (newPoints <= 0) {
                     startPassivePhase("ENEMY_TURN");
                 } else {
@@ -473,9 +476,11 @@ export const useGameLogic = () => {
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
 
     setTimeout(() => {
       processTicksAndAdvance(() => {
+          setInteractionState({ mode: "MENU", selectedSkill: null });
           if (newPoints <= 0) {
             startPassivePhase("ENEMY_TURN");
           } else {

@@ -50,7 +50,7 @@ export interface LogEntry {
   message: string;
 }
 
-export type InteractionMode = "MENU" | "SKILLS" | "TARGETING" | "MOVING";
+export type InteractionMode = "MENU" | "SKILLS" | "TARGETING" | "MOVING" | "EXECUTING";
 
 export interface InteractionState {
   mode: InteractionMode;
