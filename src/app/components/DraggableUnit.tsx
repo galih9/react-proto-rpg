@@ -15,11 +15,11 @@ interface Props {
 
 const getUnitDisplayInfo = (id: string) => {
   switch (id) {
-    case 'p1': return { name: 'Me', char: 'M' };
-    case 'p2': return { name: 'Pet 1', char: 'P' };
-    case 'e1': return { name: 'Pet 2', char: 'P' };
-    case 'e2': return { name: 'Pet 3', char: 'P' };
-    default: return { name: id, char: id.charAt(0).toUpperCase() };
+    case 'p1': return { char: 'M' };
+    case 'p2': return { char: 'P' };
+    case 'e1': return { char: 'P' };
+    case 'e2': return { char: 'P' };
+    default: return { char: id.charAt(0).toUpperCase() };
   }
 };
 
@@ -52,7 +52,7 @@ export const DraggableUnit: React.FC<Props> = ({
   const hitClass = isHit ? "animate-bounce-hit" : "";
   const cursorClass = isTargetable ? "cursor-crosshair hover:ring-4 hover:ring-red-400" : "cursor-pointer";
 
-  const { name, char } = getUnitDisplayInfo(unit.id);
+  const { char } = getUnitDisplayInfo(unit.id);
 
   return (
     <div
@@ -79,12 +79,12 @@ export const DraggableUnit: React.FC<Props> = ({
 
       {/* Name and Health Bar Container */}
       <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 z-20 w-28 pointer-events-none">
-         <div className="bg-white/80 border border-slate-300 rounded-lg p-1 shadow-sm flex flex-col gap-1 backdrop-blur-sm">
-             <div className="text-[10px] font-bold text-slate-800 leading-none text-left px-0.5">
-                {name}
-             </div>
-             <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
-         </div>
+        <div className="bg-white/80 border border-slate-300 rounded-lg p-1 shadow-sm flex flex-col gap-1 backdrop-blur-sm">
+          <div className="text-[10px] font-bold text-slate-800 leading-none text-left px-0.5">
+            {unit.displayName}
+          </div>
+          <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
+        </div>
       </div>
     </div>
   );

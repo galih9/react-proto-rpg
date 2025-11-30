@@ -29,6 +29,7 @@ export interface Unit {
   statusEffects: StatusEffect[];
   isDead: boolean;
   isGuarding?: boolean;
+  displayName: string;
 }
 
 export interface TileData {

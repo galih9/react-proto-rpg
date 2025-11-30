@@ -6,7 +6,7 @@ export const DRAG_TYPE = "UNIT";
 
 export const INITIAL_UNITS: Unit[] = [
   {
-    id: "p1", // Me
+    id: "p1",
     type: "PLAYER",
     x: null,
     y: null,
@@ -17,9 +17,10 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "FIRE"],
     statusEffects: [],
     isDead: false,
+    displayName: "Raka"
   },
   {
-    id: "p2", // Pet 1
+    id: "p2",
     type: "PLAYER",
     x: null,
     y: null,
@@ -30,9 +31,10 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "ICE", "BLACK_MAGIC"],
     statusEffects: [],
     isDead: false,
+    displayName: "Tuyul"
   },
   {
-    id: "e1", // Pet 2 (Enemy 1)
+    id: "e1",
     type: "ENEMY",
     x: 4,
     y: 1,
@@ -43,19 +45,21 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "ICE"],
     statusEffects: [],
     isDead: false,
+    displayName: "Pocong"
   },
   {
-    id: "e2", // Pet 3 (Enemy 2 with more HP)
+    id: "e2",
     type: "ENEMY",
     x: 3,
     y: 2,
-    hp: 120, // Increased HP
+    hp: 120,
     maxHp: 120,
     element: "WIND",
     weakness: "PHYSICAL",
     skills: ["PHYSICAL", "WIND"],
     statusEffects: [],
     isDead: false,
+    displayName: "Genderuwo"
   },
 ];
 
