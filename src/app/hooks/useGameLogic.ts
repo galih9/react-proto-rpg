@@ -452,7 +452,7 @@ export const useGameLogic = () => {
 
     const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
 
-    if (isAdjacent && !isOccupied) {
+    if (isAdjacent && !isOccupied && x <= 2) {
         moveUnit(currentActor.id, x, y);
         addLog(`${currentActor.id} moves to (${x}, ${y}).`);
 
