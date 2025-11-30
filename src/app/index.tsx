@@ -177,7 +177,7 @@ export default function App() {
                     )}
 
                     {/* CANCEL BUTTON */}
-                    {interactionState.mode !== "MENU" && phase === "PLAYER_TURN" && (
+                    {interactionState.mode !== "MENU" && interactionState.mode !== "EXECUTING" && phase === "PLAYER_TURN" && (
                         <button
                             onClick={cancelInteraction}
                             className="bg-slate-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-slate-700 transition-colors flex items-center gap-2"

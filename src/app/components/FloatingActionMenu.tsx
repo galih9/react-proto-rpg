@@ -25,6 +25,10 @@ export const FloatingActionMenu: React.FC<Props> = ({
   // Common button style
   const btnClass = "block w-full text-left bg-white border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 rounded mb-1 shadow-sm font-sans disabled:opacity-50 disabled:cursor-not-allowed";
 
+  if (interactionState.mode === 'EXECUTING') {
+    return null;
+  }
+
   if (interactionState.mode === 'MENU') {
     return (
       <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
