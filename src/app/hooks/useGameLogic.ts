@@ -380,6 +380,15 @@ export const useGameLogic = () => {
         setTimeout(() => {
              // Calculate final points from Ref (safest)
              const finalPoints = turnPointsRef.current;
+             const currentUnits = unitsRef.current;
+
+             // Victory Check Immediate
+             const activeEnemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead);
+             if (activeEnemies.length === 0) {
+                 setPhase("VICTORY");
+                 addLog("VICTORY - ALL ENEMIES DEFEATED");
+                 return;
+             }
 
              processTicksAndAdvance(() => {
                 setInteractionState({ mode: "MENU", selectedSkill: null });
