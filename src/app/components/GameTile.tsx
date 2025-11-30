@@ -39,7 +39,7 @@ export const GameTile: React.FC<Props> = ({ tile, phase, moveUnit, isValidMove, 
 
   return (
     <div
-      ref={drop as any}
+      ref={drop as unknown as React.Ref<HTMLDivElement>}
       onClick={isValidMove ? onClick : undefined}
       className={`w-full h-24 flex items-center justify-center relative rounded-lg shadow-md transition-all duration-300 ease-in-out ${bgClass}`}
     >
