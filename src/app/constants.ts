@@ -17,7 +17,8 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "FIRE"],
     statusEffects: [],
     isDead: false,
-    displayName: "Raka"
+    displayName: "Raka",
+    floatingTextEvents: []
   },
   {
     id: "p2",
@@ -31,7 +32,8 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "ICE", "BLACK_MAGIC"],
     statusEffects: [],
     isDead: false,
-    displayName: "Tuyul"
+    displayName: "Tuyul",
+    floatingTextEvents: []
   },
   {
     id: "e1",
@@ -45,7 +47,8 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "ICE"],
     statusEffects: [],
     isDead: false,
-    displayName: "Pocong"
+    displayName: "Pocong",
+    floatingTextEvents: []
   },
   {
     id: "e2",
@@ -59,7 +62,8 @@ export const INITIAL_UNITS: Unit[] = [
     skills: ["PHYSICAL", "WIND"],
     statusEffects: [],
     isDead: false,
-    displayName: "Genderuwo"
+    displayName: "Genderuwo",
+    floatingTextEvents: []
   },
 ];
 

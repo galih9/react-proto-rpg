@@ -74,6 +74,22 @@ export const DraggableUnit: React.FC<Props> = ({
         </div>
       )}
 
+      {/* Floating Combat Text Container */}
+      <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50">
+        {unit.floatingTextEvents.map((event) => (
+          <div
+            key={event.id}
+            className={`
+              animate-float-up font-bold text-lg
+              ${event.type === 'DAMAGE' ? 'text-red-500' : 'text-green-500'}
+            `}
+          >
+            {event.value > 0 && event.type === 'HEAL' ? '+' : ''}
+            {event.value}
+          </div>
+        ))}
+      </div>
+
       {/* Character Letter */}
       {char}
 

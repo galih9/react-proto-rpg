@@ -16,6 +16,12 @@ export interface StatusEffect {
   sourceId: string; // Who applied it
 }
 
+export interface FloatingTextEvent {
+  id: string;
+  value: number;
+  type: "DAMAGE" | "HEAL";
+}
+
 export interface Unit {
   id: string;
   type: UnitType;
@@ -30,6 +36,7 @@ export interface Unit {
   isDead: boolean;
   isGuarding?: boolean;
   displayName: string;
+  floatingTextEvents: FloatingTextEvent[];
 }
 
 export interface TileData {

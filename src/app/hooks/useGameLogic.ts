@@ -43,24 +43,50 @@ export const useGameLogic = () => {
     addLog("Setup Phase: Drag blue units onto the left blue tiles.");
   };
 
+  // Helper to remove floating event
+  const removeFloatingEvent = (unitId: string, eventId: string) => {
+    setUnits((prev) =>
+      prev.map((u) => {
+        if (u.id === unitId) {
+          return {
+            ...u,
+            floatingTextEvents: u.floatingTextEvents.filter((e) => e.id !== eventId),
+          };
+        }
+        return u;
+      })
+    );
+  };
+
   // --- STATUS EFFECT LOGIC ---
   // Better implementation of tick that supports logging
   const processTicksAndAdvance = (callback: () => void) => {
      // 1. Get current units from Ref (latest)
      const currentUnits = unitsRef.current;
      let logsToAdd: string[] = [];
+     const eventsToRemove: { unitId: string; eventId: string }[] = [];
 
      const nextUnits = currentUnits.map(unit => {
          if (unit.isDead) return unit;
 
          let newHp = unit.hp;
          let newStatusEffects: StatusEffect[] = [];
+         let newFloatingEvents = [...unit.floatingTextEvents];
 
          unit.statusEffects.forEach(effect => {
              if (effect.type === 'POISON') {
                  const damage = Math.floor(unit.maxHp * 0.05);
                  newHp = Math.max(0, newHp - damage);
                  logsToAdd.push(`${unit.id} takes ${damage} poison damage.`);
+
+                 // Add Floating Text
+                 const eventId = `poison-${Date.now()}-${Math.random()}`;
+                 newFloatingEvents.push({
+                     id: eventId,
+                     value: -damage,
+                     type: 'DAMAGE'
+                 });
+                 eventsToRemove.push({ unitId: unit.id, eventId });
              }
 
              const newDuration = effect.duration - 1;
@@ -75,13 +101,29 @@ export const useGameLogic = () => {
              ...unit,
              hp: newHp,
              isDead: newHp === 0,
-             statusEffects: newStatusEffects
+             statusEffects: newStatusEffects,
+             floatingTextEvents: newFloatingEvents
          };
      });
 
      // 2. Update State
      setUnits(nextUnits);
      logsToAdd.forEach(msg => addLog(msg));
+
+     if (eventsToRemove.length > 0) {
+         setTimeout(() => {
+             setUnits(prev => prev.map(u => {
+                 const eventsForUnit = eventsToRemove.filter(e => e.unitId === u.id).map(e => e.eventId);
+                 if (eventsForUnit.length > 0) {
+                     return {
+                         ...u,
+                         floatingTextEvents: u.floatingTextEvents.filter(e => !eventsForUnit.includes(e.id))
+                     };
+                 }
+                 return u;
+             }));
+         }, 1000);
+     }
 
      // 3. Callback (Proceed to next actor/phase)
      callback();
@@ -153,14 +195,44 @@ export const useGameLogic = () => {
 
         setTimeout(() => {
           // Heal Logic (Active healing)
+          const eventsToRemove: { unitId: string; eventId: string }[] = [];
+
           setUnits((prev) =>
             prev.map((u) => {
               if (u.type === healingType && !u.isDead && u.hp < u.maxHp) {
-                return { ...u, hp: Math.min(u.maxHp, u.hp + 5) };
+                const healAmount = 5;
+                const newHp = Math.min(u.maxHp, u.hp + healAmount);
+                const actualHeal = newHp - u.hp;
+
+                if (actualHeal > 0) {
+                     const eventId = `heal-${Date.now()}-${Math.random()}`;
+                     eventsToRemove.push({ unitId: u.id, eventId });
+                     return {
+                         ...u,
+                         hp: newHp,
+                         floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: actualHeal, type: 'HEAL' }]
+                     };
+                }
+                return { ...u, hp: newHp };
               }
               return u;
             })
           );
+
+          if (eventsToRemove.length > 0) {
+               setTimeout(() => {
+                   setUnits(prev => prev.map(u => {
+                       const eventsForUnit = eventsToRemove.filter(e => e.unitId === u.id).map(e => e.eventId);
+                       if (eventsForUnit.length > 0) {
+                           return {
+                               ...u,
+                               floatingTextEvents: u.floatingTextEvents.filter(e => !eventsForUnit.includes(e.id))
+                           };
+                       }
+                       return u;
+                   }));
+               }, 1000);
+          }
 
           // Trigger Ticks AGAIN?
           // Requirement: "triggered every turn taken by anyone and also when the passive phase"
@@ -232,6 +304,8 @@ export const useGameLogic = () => {
       }
 
       // Update HP & Status
+      let eventIdToRemove: string | null = null;
+
       setUnits((prev) =>
         prev.map((u) => {
           if (u.id === target.id) {
@@ -240,11 +314,28 @@ export const useGameLogic = () => {
                 ? [...u.statusEffects, statusEffectToAdd]
                 : u.statusEffects;
 
-            return { ...u, hp: newHp, isDead: newHp === 0, statusEffects: newStatusEffects };
+            // Add Floating Text
+            const eventId = `dmg-${Date.now()}-${Math.random()}`;
+            eventIdToRemove = eventId;
+
+            return {
+                ...u,
+                hp: newHp,
+                isDead: newHp === 0,
+                statusEffects: newStatusEffects,
+                floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: -damage, type: 'DAMAGE' }]
+            };
           }
           return u;
         })
       );
+
+      if (eventIdToRemove) {
+          const id = eventIdToRemove; // capture
+           setTimeout(() => {
+               removeFloatingEvent(target.id, id);
+           }, 1000);
+      }
 
       // Trigger Target Bounce Animation
       setHitTargetId(target.id);
