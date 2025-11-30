@@ -7,7 +7,14 @@ export type Phase =
   | "VICTORY"
   | "DEFEAT";
 export type UnitType = "PLAYER" | "ENEMY";
-export type Element = "FIRE" | "ICE" | "WIND" | "PHYSICAL";
+export type Element = "FIRE" | "ICE" | "WIND" | "PHYSICAL" | "BLACK_MAGIC";
+
+export interface StatusEffect {
+  id: string; // Unique ID for the effect instance
+  type: "POISON";
+  duration: number; // Number of ticks remaining
+  sourceId: string; // Who applied it
+}
 
 export interface Unit {
   id: string;
@@ -18,6 +25,8 @@ export interface Unit {
   maxHp: number;
   element: Element;
   weakness: Element;
+  skills: Element[];
+  statusEffects: StatusEffect[];
   isDead: boolean;
   isGuarding?: boolean;
 }

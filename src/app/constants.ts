@@ -14,6 +14,8 @@ export const INITIAL_UNITS: Unit[] = [
     maxHp: 50,
     element: "FIRE",
     weakness: "ICE",
+    skills: ["PHYSICAL", "FIRE"],
+    statusEffects: [],
     isDead: false,
   },
   {
@@ -25,6 +27,8 @@ export const INITIAL_UNITS: Unit[] = [
     maxHp: 50,
     element: "ICE",
     weakness: "FIRE",
+    skills: ["PHYSICAL", "ICE", "BLACK_MAGIC"],
+    statusEffects: [],
     isDead: false,
   },
   {
@@ -36,6 +40,8 @@ export const INITIAL_UNITS: Unit[] = [
     maxHp: 100,
     element: "ICE",
     weakness: "FIRE",
+    skills: ["PHYSICAL", "ICE"],
+    statusEffects: [],
     isDead: false,
   },
   {
@@ -47,6 +53,8 @@ export const INITIAL_UNITS: Unit[] = [
     maxHp: 120,
     element: "WIND",
     weakness: "PHYSICAL",
+    skills: ["PHYSICAL", "WIND"],
+    statusEffects: [],
     isDead: false,
   },
 ];
