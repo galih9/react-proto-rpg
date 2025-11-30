@@ -25,13 +25,13 @@ export const TurnPointBar: React.FC<Props> = ({ points }) => {
       if (points < displayPoints) {
         // LOSS detected
         const diff = displayPoints - points;
-        const blocksToFall = [];
+        const blocksToFall: number[] = [];
         // We lose the top-most (highest index) blocks currently displayed
         for (let i = 0; i < diff; i++) {
           blocksToFall.push(displayPoints - i);
         }
 
-        setFallingBlocks(blocksToFall);
+        setTimeout(() => setFallingBlocks(blocksToFall), 0);
         isAnimatingRef.current = true;
 
         // Wait for fall animation to finish

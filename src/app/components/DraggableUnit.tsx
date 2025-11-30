@@ -56,7 +56,7 @@ export const DraggableUnit: React.FC<Props> = ({
 
   return (
     <div
-      ref={unit.type === "PLAYER" ? (drag as any) : null}
+      ref={unit.type === "PLAYER" ? (drag as unknown as React.Ref<HTMLDivElement>) : null}
       onClick={onClick}
       style={{ ...transformStyle }}
       className={`

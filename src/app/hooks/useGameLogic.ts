@@ -65,15 +65,15 @@ export const useGameLogic = () => {
 
   const processTicksAndAdvance = (callback: () => void) => {
      const currentUnits = unitsRef.current;
-     let logsToAdd: string[] = [];
+     const logsToAdd: string[] = [];
      const eventsToRemove: { unitId: string; eventId: string }[] = [];
 
      const nextUnits = currentUnits.map(unit => {
          if (unit.isDead) return unit;
 
          let newHp = unit.hp;
-         let newStatusEffects: StatusEffect[] = [];
-         let newFloatingEvents = [...unit.floatingTextEvents];
+         const newStatusEffects: StatusEffect[] = [];
+         const newFloatingEvents = [...unit.floatingTextEvents];
 
          unit.statusEffects.forEach(effect => {
              if (effect.type === 'POISON') {
@@ -171,6 +171,7 @@ export const useGameLogic = () => {
 
       processEnemyTurn(points);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   const startPassivePhase = (nextPhase: "PLAYER_TURN" | "ENEMY_TURN") => {
@@ -227,9 +228,7 @@ export const useGameLogic = () => {
   const executeAttack = (
     attackerId: string,
     targetId: string,
-    skillElement: Element,
-    currentPoints: number,
-    _isPlayer: boolean
+    skillElement: Element
   ): boolean => {
     // Returns true if weakness was hit, false otherwise.
     // Does NOT return new points anymore.
@@ -361,9 +360,7 @@ export const useGameLogic = () => {
     const isWeakness = executeAttack(
       attacker.id,
       target.id,
-      interactionState.selectedSkill,
-      turnPoints, // Pass current for ref/logging if needed, but logic handles update
-      true
+      interactionState.selectedSkill
     );
 
     setInteractionState({ mode: "MENU", selectedSkill: null });
@@ -534,9 +531,7 @@ export const useGameLogic = () => {
         executeAttack(
           attacker.id,
           target.id,
-          skill,
-          currentPoints,
-          false
+          skill
         );
 
         enemyIndex++;
@@ -562,6 +557,7 @@ export const useGameLogic = () => {
     if (currentActor) {
         setInteractionState({ mode: "MENU", selectedSkill: null });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentActor?.id]);
 
 
