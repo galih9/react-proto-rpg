@@ -9,11 +9,17 @@ export const useGameLogic = () => {
 
   // Ref to always access latest units in async operations
   const unitsRef = useRef<Unit[]>(INITIAL_UNITS);
+  // Ref for turn points to avoid stale closures in timeouts
+  const turnPointsRef = useRef(0);
 
-  // Sync Ref
+  // Sync Refs
   useEffect(() => {
     unitsRef.current = units;
   }, [units]);
+
+  useEffect(() => {
+    turnPointsRef.current = turnPoints;
+  }, [turnPoints]);
 
 
   // Interaction State (For new UI flow)
@@ -43,7 +49,6 @@ export const useGameLogic = () => {
     addLog("Setup Phase: Drag blue units onto the left blue tiles.");
   };
 
-  // Helper to remove floating event
   const removeFloatingEvent = (unitId: string, eventId: string) => {
     setUnits((prev) =>
       prev.map((u) => {
@@ -58,10 +63,7 @@ export const useGameLogic = () => {
     );
   };
 
-  // --- STATUS EFFECT LOGIC ---
-  // Better implementation of tick that supports logging
   const processTicksAndAdvance = (callback: () => void) => {
-     // 1. Get current units from Ref (latest)
      const currentUnits = unitsRef.current;
      let logsToAdd: string[] = [];
      const eventsToRemove: { unitId: string; eventId: string }[] = [];
@@ -79,7 +81,6 @@ export const useGameLogic = () => {
                  newHp = Math.max(0, newHp - damage);
                  logsToAdd.push(`${unit.id} takes ${damage} poison damage.`);
 
-                 // Add Floating Text
                  const eventId = `poison-${Date.now()}-${Math.random()}`;
                  newFloatingEvents.push({
                      id: eventId,
@@ -106,7 +107,6 @@ export const useGameLogic = () => {
          };
      });
 
-     // 2. Update State
      setUnits(nextUnits);
      logsToAdd.forEach(msg => addLog(msg));
 
@@ -125,12 +125,10 @@ export const useGameLogic = () => {
          }, 1000);
      }
 
-     // 3. Callback (Proceed to next actor/phase)
      callback();
   };
 
 
-  // --- BATTLE START ---
   const startBattle = () => {
     const activePlayers = units.filter(
       (u) => u.type === "PLAYER" && u.x !== null
@@ -139,16 +137,10 @@ export const useGameLogic = () => {
       alert("Place at least one character!");
       return;
     }
-    // Instead of calling startPlayerTurn directly, we set phase
     setPhase("PLAYER_TURN");
   };
 
-  // --- PHASE MANAGEMENT (useEffect driven) ---
   useEffect(() => {
-    // We use units from the scope here, which is fine because this effect re-runs when phase changes,
-    // and phase changes usually happen after state updates.
-    // However, for extra safety, we can use unitsRef.current, but React state 'units' is safer for render logic.
-
     if (phase === "PLAYER_TURN") {
       const activePlayers = units.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
@@ -159,7 +151,6 @@ export const useGameLogic = () => {
         return;
       }
 
-      // Reset guarding status & interaction state
       setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
       setInteractionState({ mode: "MENU", selectedSkill: null });
 
@@ -178,23 +169,17 @@ export const useGameLogic = () => {
       setTurnPoints(points);
       addLog(`>>> ENEMY TURN (Points: ${points})`);
 
-      // Trigger AI Logic
       processEnemyTurn(points);
     }
   }, [phase]);
 
   const startPassivePhase = (nextPhase: "PLAYER_TURN" | "ENEMY_TURN") => {
-    // Trigger Ticks before entering Passive logic proper
     processTicksAndAdvance(() => {
         setPhase("PASSIVE");
-
-        // Determine who gets healed based on who just finished their turn
-        // If next is ENEMY, that means Player just finished -> Heal Player
         const healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY";
         addLog(`--- Passive Phase (${healingType} Heal) ---`);
 
         setTimeout(() => {
-          // Heal Logic (Active healing)
           const eventsToRemove: { unitId: string; eventId: string }[] = [];
 
           setUnits((prev) =>
@@ -234,56 +219,38 @@ export const useGameLogic = () => {
                }, 1000);
           }
 
-          // Trigger Ticks AGAIN?
-          // Requirement: "triggered every turn taken by anyone and also when the passive phase"
-          // We ticked entering Passive. That counts for the "Passive Phase" tick.
-          // Then we go to next phase.
-
-          // Transition to next active phase
-          // We set phase here, allowing useEffect to pick it up with updated units state
           setPhase(nextPhase);
         }, 1500);
     });
   };
 
-  // --- CORE ATTACK LOGIC (Generic) ---
   const executeAttack = (
     attackerId: string,
     targetId: string,
     skillElement: Element,
     currentPoints: number,
     _isPlayer: boolean
-  ) => {
-    const currentUnits = unitsRef.current;
+  ): boolean => {
+    // Returns true if weakness was hit, false otherwise.
+    // Does NOT return new points anymore.
 
+    const currentUnits = unitsRef.current;
     const attacker = currentUnits.find((u) => u.id === attackerId);
     const target = currentUnits.find((u) => u.id === targetId);
 
-    if (!attacker || !target) return currentPoints;
+    if (!attacker || !target) return false;
 
-    // 1. Animation: Attacker Moves
     setAttackingUnitId(attacker.id);
 
-    // 2. Calculation
-    let cost = 2;
-    // Basic Rule: Attack costs 2.
-    // If Weakness -> Cost 1.
-    // NOTE: Even for BLACK_MAGIC, cost is 2.
-    // If we want BLACK_MAGIC to reduce cost on weakness (does it have a weakness?), we apply same rule.
-    // For now, we assume standard Elemental Weakness logic applies to all skills.
-
-    // Check Weakness
-    // Physical now behaves like Magic: 2 pts base, 1 pt if weakness.
     const isWeakness = target.weakness === skillElement;
-    if (isWeakness) cost = 1;
 
-    // 3. Resolve Damage (Delayed for visual sync)
+    // Resolve Damage
     setTimeout(() => {
       let damage = 0;
       let statusEffectToAdd: StatusEffect | null = null;
 
       if (skillElement === 'BLACK_MAGIC') {
-          damage = 30; // Fixed initial damage
+          damage = 30;
           statusEffectToAdd = {
               id: `poison-${Date.now()}`,
               type: 'POISON',
@@ -291,10 +258,8 @@ export const useGameLogic = () => {
               sourceId: attacker.id
           };
       } else {
-          // Standard Calculation
           damage = isWeakness ? 20 : 10;
           if (target.isGuarding && skillElement === 'PHYSICAL') {
-            // Guard usually blocks physical? Or all? Assuming all damage reduction for simplicity
             damage = Math.floor(damage / 2);
             addLog(`${target.id} is guarding! Damage reduced.`);
           } else if (target.isGuarding) {
@@ -303,7 +268,6 @@ export const useGameLogic = () => {
           }
       }
 
-      // Update HP & Status
       let eventIdToRemove: string | null = null;
 
       setUnits((prev) =>
@@ -314,7 +278,6 @@ export const useGameLogic = () => {
                 ? [...u.statusEffects, statusEffectToAdd]
                 : u.statusEffects;
 
-            // Add Floating Text
             const eventId = `dmg-${Date.now()}-${Math.random()}`;
             eventIdToRemove = eventId;
 
@@ -331,15 +294,14 @@ export const useGameLogic = () => {
       );
 
       if (eventIdToRemove) {
-          const id = eventIdToRemove; // capture
+          const id = eventIdToRemove;
            setTimeout(() => {
                removeFloatingEvent(target.id, id);
            }, 1000);
       }
 
-      // Trigger Target Bounce Animation
       setHitTargetId(target.id);
-      setTimeout(() => setHitTargetId(null), 500); // Reset bounce after 0.5s
+      setTimeout(() => setHitTargetId(null), 500);
 
       addLog(
         `${attacker.id} hits ${target.id} (${skillElement}). ${
@@ -353,10 +315,9 @@ export const useGameLogic = () => {
       setAttackingUnitId(null);
     }, 600);
 
-    return currentPoints - cost;
+    return isWeakness;
   };
 
-  // --- INTERACTION HELPER FUNCTIONS ---
   const openSkillsMenu = () => {
     setInteractionState({ mode: "SKILLS", selectedSkill: null });
   };
@@ -369,22 +330,9 @@ export const useGameLogic = () => {
     setInteractionState({ mode: "MENU", selectedSkill: null });
   };
 
-  // --- PLAYER ACTIONS ---
-
-  // Called when clicking an ENEMY unit in TARGETING mode
   const handleUnitClick = (unitId: string) => {
     if (interactionState.mode !== "TARGETING" || !interactionState.selectedSkill) return;
 
-    // Validate turn points
-    // Now all skills cost 2 base. Weakness logic is applied inside executeAttack return value.
-    // However, we need to know if we have enough points to *start*.
-    // Since we don't know weakness yet (it's hidden logic?), safe bet is to require 2 points?
-    // User said: "sometimes the basic attack is consuming 2 turnpoint sometimes it consuming the right turnpoint (1 turnpoint)"
-    // If current points is 1, and target is weak, we should allow it.
-    // But we can't pre-calculate without peeking.
-    // For now, let's allow attempt if points >= 1, but if it costs 2 and we have 1, result is -1?
-    // The previous logic allowed execution.
-    // Let's enforce >= 1 to click. Cost calculation handles the rest.
     if (turnPoints < 1) return;
 
     const activePlayers = units.filter(
@@ -392,36 +340,61 @@ export const useGameLogic = () => {
     );
     const attacker = activePlayers[currentActorIndex % activePlayers.length];
 
-    // Ensure target is valid (Enemy)
     const target = units.find(u => u.id === unitId);
     if(!attacker || !target || target.type !== 'ENEMY') return;
 
-    // Execute
-    const newPoints = executeAttack(
+    // 1. DEDUCT COST IMMEDIATELY (2 points base)
+    // This triggers the "Loss" animation (4 -> 2)
+    const cost = 2;
+    // We update state based on previous to be safe, but we know what we want
+    // However, if we are at 1 point, we go to -1?
+    // "sometimes the basic attack is consuming 2 turnpoint sometimes... 1"
+    // If we have 1 point and hit weakness, technically cost is 1.
+    // If we deduct 2 from 1, we get -1.
+    // That's fine visually if we add 1 back later (to 0).
+    // Or we clamp?
+    // If we clamp to 0, then add 1, we get 1. Correct.
+    // But if we had 4, went to 2, add 1 -> 3. Correct.
+    setTurnPoints(prev => prev - cost);
+
+    // 2. Execute Attack (Returns isWeakness)
+    const isWeakness = executeAttack(
       attacker.id,
       target.id,
       interactionState.selectedSkill,
-      turnPoints,
+      turnPoints, // Pass current for ref/logging if needed, but logic handles update
       true
     );
-    setTurnPoints(newPoints);
 
-    // Reset UI
     setInteractionState({ mode: "MENU", selectedSkill: null });
 
-    // Turn Cycle Logic
+    // 3. Handle Turn Cycle & Bonus with Delay
     setTimeout(() => {
-      // Tick logic triggers when we move to next ACTOR or PHASE
-      processTicksAndAdvance(() => {
-          if (newPoints <= 0) {
-            startPassivePhase("ENEMY_TURN");
-          } else {
-            setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
-            // Also reset UI for next actor just in case
-            setInteractionState({ mode: "MENU", selectedSkill: null });
-          }
-      });
-    }, 700);
+        // If Weakness, add bonus point
+        if (isWeakness) {
+            setTurnPoints(prev => prev + 1);
+            addLog("Weakness Hit! +1 Turn Point");
+        }
+
+        // Wait another moment for the Gain animation (if any) to start/play
+        // Gain animation in TurnPointBar waits 600ms or so.
+        // We need to check end-of-turn AFTER the points have settled.
+
+        setTimeout(() => {
+             // Calculate final points from Ref (safest)
+             const finalPoints = turnPointsRef.current;
+
+             processTicksAndAdvance(() => {
+                if (finalPoints <= 0) {
+                    startPassivePhase("ENEMY_TURN");
+                } else {
+                    setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
+                    setInteractionState({ mode: "MENU", selectedSkill: null });
+                }
+             });
+        }, isWeakness ? 1000 : 200); // Wait longer if we triggered a gain animation
+
+    }, 800); // Wait 800ms after deduction to apply bonus (allows consumption animation to finish)
   };
 
   const handleGuard = () => {
@@ -465,16 +438,13 @@ export const useGameLogic = () => {
     const currentActor = activePlayers[currentActorIndex % activePlayers.length];
     if (!currentActor || currentActor.x === null || currentActor.y === null) return;
 
-    // Validate Move (1 tile radius)
     const dx = Math.abs(x - currentActor.x);
     const dy = Math.abs(y - currentActor.y);
     const isAdjacent = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
 
-    // Validate Occupancy
     const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
 
     if (isAdjacent && !isOccupied) {
-        // Execute Move
         moveUnit(currentActor.id, x, y);
         addLog(`${currentActor.id} moves to (${x}, ${y}).`);
 
@@ -518,35 +488,23 @@ export const useGameLogic = () => {
     }, 200);
   };
 
-  // --- ENEMY AI ---
   const processEnemyTurn = async (startingPoints: number) => {
     let currentPoints = startingPoints;
     let enemyIndex = 0;
 
-    // Simple Recursive function to process turns with delays
     const performNextEnemyAction = () => {
-      // Check if turn over
       if (currentPoints <= 0) {
-        // Tick handled inside startPassivePhase transition?
-        // Wait, startPassivePhase does a tick.
-        // But we need a tick *between* enemy actions too?
-        // "triggered every turn taken by anyone"
         startPassivePhase("PLAYER_TURN");
         return;
       }
 
-      // Check valid enemies remaining
       const currentUnits = unitsRef.current;
-
       const livingEnemies = currentUnits.filter(
         (u) => u.type === "ENEMY" && !u.isDead
       );
       if (livingEnemies.length === 0) return;
 
-      // Select Attacker
       const attacker = livingEnemies[enemyIndex % livingEnemies.length];
-
-      // Select Random Target (Alive Player)
       const alivePlayers = currentUnits.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
       );
@@ -555,48 +513,51 @@ export const useGameLogic = () => {
       const target =
         alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
-      // Select Random Skill from Unit Skills
-      // Fallback if skills undefined for some reason (though we added them)
       const availableSkills = attacker.skills || ['PHYSICAL', attacker.element];
       const skill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
 
-      // EXECUTE
       setTimeout(() => {
-        currentPoints = executeAttack(
+        // AI Logic is simpler: Just calculate and set.
+        // We can mimic the player flow if desired, but AI visuals are less critical?
+        // Let's keep AI robust but maybe less delayed for now unless asked.
+        // But `executeAttack` signature changed! It returns boolean now.
+
+        // 1. Calculate Cost
+        let cost = 2;
+        // Check Weakness
+        const isWeakness = target.weakness === skill;
+        if (isWeakness) cost = 1;
+
+        currentPoints = currentPoints - cost;
+        setTurnPoints(currentPoints);
+
+        executeAttack(
           attacker.id,
           target.id,
           skill,
           currentPoints,
           false
         );
-        setTurnPoints(currentPoints);
 
-        // Move to next enemy for next action
         enemyIndex++;
 
-        // Process Tick after action
         setTimeout(() => {
             processTicksAndAdvance(() => {
-                 // Loop again
                  performNextEnemyAction();
             });
-        }, 1200); // Wait for attack animation to finish fully
+        }, 1200);
       }, 1000);
     };
 
-    // Kick off the loop
     performNextEnemyAction();
   };
 
-  // Getters
-  // We use the state 'units' for rendering, not the ref
   const activePlayers = units.filter(
     (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
   );
   const currentActor = activePlayers[currentActorIndex % activePlayers.length];
   const enemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
 
-  // Watch for actor change to reset interaction state
   useEffect(() => {
     if (currentActor) {
         setInteractionState({ mode: "MENU", selectedSkill: null });
