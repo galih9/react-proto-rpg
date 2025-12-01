@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import type { Phase, Unit, Element, LogEntry, InteractionState, StatusEffect } from "../types";
+import type { Phase, ActiveUnit, Element, LogEntry, InteractionState, StatusEffect } from "../types";
 import { INITIAL_UNITS } from "../constants";
 
 export const useGameLogic = () => {
   const [phase, setPhase] = useState<Phase>("START");
-  const [units, setUnits] = useState<Unit[]>(INITIAL_UNITS);
+  const [units, setUnits] = useState<ActiveUnit[]>(INITIAL_UNITS);
   const [turnPoints, setTurnPoints] = useState(0);
 
   // Ref to always access latest units in async operations
-  const unitsRef = useRef<Unit[]>(INITIAL_UNITS);
+  const unitsRef = useRef<ActiveUnit[]>(INITIAL_UNITS);
   // Ref for turn points to avoid stale closures in timeouts
   const turnPointsRef = useRef(0);
 

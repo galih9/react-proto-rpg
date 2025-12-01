@@ -1,10 +1,10 @@
-import type { TileData, Unit } from "./types";
+import type { TileData, ActiveUnit } from "./types";
 
 export const ROWS = 4;
 export const COLS = 5;
 export const DRAG_TYPE = "UNIT";
 
-export const INITIAL_UNITS: Unit[] = [
+export const INITIAL_UNITS: ActiveUnit[] = [
   {
     id: "p1",
     type: "PLAYER",

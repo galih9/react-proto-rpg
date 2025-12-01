@@ -1,11 +1,11 @@
 import React from "react";
 import { useDrag } from "react-dnd";
-import type { Unit } from "../types";
+import type { ActiveUnit } from "../types";
 import { DRAG_TYPE } from "../constants";
 import { HealthBar } from "./HealthBar";
 
 interface Props {
-  unit: Unit;
+  unit: ActiveUnit;
   isTurn: boolean;
   isAttacking: boolean;
   isHit: boolean;

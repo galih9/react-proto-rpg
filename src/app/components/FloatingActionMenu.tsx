@@ -1,8 +1,8 @@
 import React from 'react';
-import type { InteractionState, Unit, Element } from '../types';
+import type { InteractionState, ActiveUnit, Element } from '../types';
 
 interface Props {
-  currentActor: Unit;
+  currentActor: ActiveUnit;
   interactionState: InteractionState;
   turnPoints: number;
   onGuard: () => void;

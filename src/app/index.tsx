@@ -148,7 +148,7 @@ export default function App() {
 
                 {/* STAGING AREA (Only in Setup) */}
                 {phase === "SETUP" && (
-                  <div className="bg-slate-700 p-4 rounded w-full max-w-2xl flex gap-4 min-h-[80px] justify-center shadow-inner">
+                  <div className="bg-slate-700 p-4 rounded w-full max-w-2xl flex gap-4 min-h-20 justify-center shadow-inner">
                     {units
                       .filter((u) => u.type === "PLAYER" && u.x === null)
                       .map((u) => (
