@@ -40,70 +40,111 @@ const UNITS: IUnit[] = [
       },
     ],
     contact: {
-        recruitOption:[
-            {
-                option: "",
-                id: ""
-            }
-        ],
-      startRecruit: [
-        {
-          id: "1",
-          lines: [
-            {
-              text: "Hmm, so you wanted me to join your gang?",
-              actor: "Tuyul",
-            },
-            {
-              text: "It's not going to be free though. How about this?",
-              actor: "Tuyul",
-            },
-          ],
-          dialogType: "CONFIDENT",
-        },
-        {
-          id: "2",
-          lines: [
-            {
-              text: "Huh? What do you mean you want me to join you?",
-              actor: "Tuyul",
-            },
-            {
-              text: "I don't think its gonna happen bud.",
-              actor: "Tuyul",
-            },
-          ],
-          dialogType: "CONFUSED",
-        },
-      ],
-      resultRecruit: [
-        {
-          id: "1",
-          refId: "1",
-          lines: [
-            {
-              text: "Hell yeah, that's more like it",
-              actor: "Tuyul",
-            },
-            {
-              text: "Wazzzup gang?",
-              actor: "Tuyul",
-            },
-          ],
-          dialogType: "SATISFY",
-        },
-        {
-          id: "2",
-          refId: "1",
-          lines: [
-            {
-              text: "What is this? are you joking?",
-              actor: "Tuyul",
-            },
-          ],
-          dialogType: "ANGRY",
-        },
-      ],
+      recruitOption: [],
+      startRecruit: [],
+      resultRecruit: [],
+      trashtalk: [],
+      taunt: [],
+      dispute: [],
+      begFund: [],
+      begItem: [],
+      askFund: [],
+      askItem: [],
+    },
+  },
+  {
+    id: "S2",
+    name: "Pocong",
+    lore: "Haunting spirit of a freshly dead body, yearning for revenge.",
+    shortDescription:
+      "A ferocious spirit, and a decent tanker",
+    baseHp: 120,
+    baseLevel: 1,
+    skills: [
+      {
+        id: 0,
+        name: "Bump",
+        element: "PHYSICAL",
+        description: "Quick bump onto any enemies",
+        targetType: "ANY",
+        pointCost: 2,
+        baseDamage: 20,
+      },
+      {
+        id: 1,
+        name: "Float",
+        element: "SPECIAL",
+        description: "Float in the sky for 3 turn, gaining high evasion against any attack, while floating, he can still attack",
+        targetType: "ANY",
+        pointCost: 3,
+        baseDamage: 0,
+      },
+      {
+        id: 2,
+        name: "Bite",
+        element: "PHYSICAL",
+        description:
+          "Deal high damage and recover health based on half of the damage",
+        targetType: "ANY",
+        pointCost: 2,
+        baseDamage: 30,
+      },
+    ],
+    contact: {
+      recruitOption: [],
+      startRecruit: [],
+      resultRecruit: [],
+      trashtalk: [],
+      taunt: [],
+      dispute: [],
+      begFund: [],
+      begItem: [],
+      askFund: [],
+      askItem: [],
+    },
+  },
+  {
+    id: "S3",
+    name: "Genderuwo",
+    lore: "A giant spirit who defy death.",
+    shortDescription:
+      "A beefy unstopable tank",
+    baseHp: 300,
+    baseLevel: 1,
+    skills: [
+      {
+        id: 0,
+        name: "One more",
+        element: "SPECIAL",
+        description: "When dying for the first time, he will revive with half health",
+        targetType: "SELF",
+        pointCost: 0,
+        baseDamage: 0,
+      },
+      {
+        id: 1,
+        name: "Bash",
+        element: "PHYSICAL",
+        description: "Will go into channelling mode once, and the next time having turn will deal devastating damage to an enemy",
+        targetType: "ANY",
+        pointCost: 3,
+        baseDamage: 100,
+      },
+      {
+        id: 2,
+        name: "Bite",
+        element: "PHYSICAL",
+        description:
+          "Deal high damage and recover health based on half of the damage",
+        targetType: "ANY",
+        pointCost: 2,
+        baseDamage: 30,
+      },
+    ],
+    contact: {
+      recruitOption: [],
+      startRecruit: [],
+      resultRecruit: [],
       trashtalk: [],
       taunt: [],
       dispute: [],

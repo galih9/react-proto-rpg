@@ -17,6 +17,7 @@ export type Element =
 // skill target types
 export type ISkillTarget =
   | "ANY"
+  | "SELF"
   | "MULTIPLE"
   | "PROJECTILE_SINGLE"
   | "PROJECTILE_MULTI"
@@ -26,6 +27,7 @@ export type ISkillTarget =
 // target types can be used for friendly target or enemy target
 // ANY = will target a single target regardless their tile position
 // MULTIPLE = will target all (either enemy or ally)
+// SELF = only target self
 // target types with exclusive for attacking
 // PROJECTILE = will target the frontmost target of the enemy regardless any tile position
 // THROWABLE = will target the backmost tiles of the enemy
