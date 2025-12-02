@@ -51,6 +51,14 @@ const UNITS: IUnit[] = [
       askFund: [],
       askItem: [],
     },
+    status: {
+      PHYSICAL: "WEAK",
+      FIRE: "WEAK",
+      ICE: "NORMAL",
+      WIND: "NORMAL",
+      BLACK_MAGIC: "WEAK",
+      SPECIAL: "NORMAL"
+    }
   },
   {
     id: "S2",
@@ -102,6 +110,14 @@ const UNITS: IUnit[] = [
       askFund: [],
       askItem: [],
     },
+    status: {
+      PHYSICAL: "RESIST",
+      FIRE: "WEAK",
+      ICE: "WEAK",
+      WIND: "WEAK",
+      BLACK_MAGIC: "RESIST",
+      SPECIAL: "NORMAL"
+    }
   },
   {
     id: "S3",
@@ -153,6 +169,14 @@ const UNITS: IUnit[] = [
       askFund: [],
       askItem: [],
     },
+    status: {
+      PHYSICAL: "DRAIN",
+      FIRE: "WEAK",
+      ICE: "NULL",
+      WIND: "NULL",
+      BLACK_MAGIC: "RESIST",
+      SPECIAL: "NORMAL"
+    }
   },
 ];
 

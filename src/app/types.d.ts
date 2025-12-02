@@ -14,6 +14,7 @@ export type Element =
   | "PHYSICAL"
   | "BLACK_MAGIC"
   | "SPECIAL";
+export type ElementAffinity = "WEAK" | "RESIST" | "NULL" | "DRAIN" | "DEFLECT" | "NORMAL"
 // skill target types
 export type ISkillTarget =
   | "ANY"
@@ -139,4 +140,5 @@ export interface IUnit {
   baseLevel: number;
   skills: ISkillType[];
   contact: IUnitInteraction;
+  status: Record<Element, ElementAffinity>
 }
