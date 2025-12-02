@@ -525,28 +525,58 @@ export const useGameLogic = () => {
         alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
       const availableSkills = attacker.skills || ['PHYSICAL', attacker.element];
-      const skill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+
+      // AI Decision Logic
+      type EnemyAction =
+          | { type: 'ATTACK'; skill: Element; cost: number }
+          | { type: 'GUARD'; cost: number }
+          | { type: 'WAIT'; cost: number };
+
+      let validActions: EnemyAction[] = [];
+
+      // 1. Evaluate Attacks
+      availableSkills.forEach(skill => {
+          const isWeakness = target.weakness === skill;
+          const cost = isWeakness ? 1 : 2;
+          if (currentPoints >= cost) {
+              validActions.push({ type: 'ATTACK', skill, cost });
+          }
+      });
+
+      // 2. Evaluate Guard/Wait (Cost 1)
+      if (currentPoints >= 1) {
+          validActions.push({ type: 'GUARD', cost: 1 });
+          validActions.push({ type: 'WAIT', cost: 1 });
+      }
+
+      // 3. Fallback (shouldn't happen if points >= 1, but safe guard)
+      if (validActions.length === 0) {
+           // If we have points but no actions (e.g. < 1 point? but loop checks > 0), just end?
+           // Actually, loop condition is currentPoints <= 0.
+           // If currentPoints is 0.5? (Not possible with integers).
+           // If we are here, we must have at least 1 point (from loop guard).
+           // If we have 1 point, Guard/Wait are valid.
+           // So validActions should not be empty.
+           // Just in case:
+           validActions.push({ type: 'WAIT', cost: 1 });
+      }
+
+      // 4. Choose Randomly
+      const chosenAction = validActions[Math.floor(Math.random() * validActions.length)];
 
       setTimeout(() => {
-        // AI Logic is simpler: Just calculate and set.
-        // We can mimic the player flow if desired, but AI visuals are less critical?
-        // Let's keep AI robust but maybe less delayed for now unless asked.
-        // But `executeAttack` signature changed! It returns boolean now.
-
-        // 1. Calculate Cost
-        let cost = 2;
-        // Check Weakness
-        const isWeakness = target.weakness === skill;
-        if (isWeakness) cost = 1;
-
-        currentPoints = currentPoints - cost;
+        // Execute Action
+        currentPoints -= chosenAction.cost;
         setTurnPoints(currentPoints);
 
-        executeAttack(
-          attacker.id,
-          target.id,
-          skill
-        );
+        if (chosenAction.type === 'ATTACK') {
+             executeAttack(attacker.id, target.id, chosenAction.skill);
+        } else if (chosenAction.type === 'GUARD') {
+             setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isGuarding: true } : u));
+             addLog(`${attacker.id} guards.`);
+        } else {
+             addLog(`${attacker.id} waits.`);
+        }
 
         enemyIndex++;
 

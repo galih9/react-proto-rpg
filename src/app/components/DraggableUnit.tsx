@@ -60,7 +60,7 @@ export const DraggableUnit: React.FC<Props> = ({
       onClick={onClick}
       style={{ ...transformStyle }}
       className={`
-        ${bgColor} ${border} ${hitClass} ${cursorClass} rounded-full w-12 h-12 flex items-center justify-center text-white font-bold shadow-lg
+        ${bgColor} ${border} ${hitClass} ${cursorClass} rounded-md w-12 h-12 flex items-center justify-center text-white font-bold shadow-lg
         transition-all duration-300 ease-in-out relative z-10
         ${isDragging ? "opacity-50" : "opacity-100"}
       `}
