@@ -130,6 +130,7 @@ export interface ActiveUnit extends IUnit {
   isGuarding?: boolean;
   displayName: string; // Can be same as name
   floatingTextEvents: FloatingTextEvent[];
+  isChanneling: boolean;
 }
 
 export interface TileData {
