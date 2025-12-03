@@ -76,18 +76,36 @@ export const DraggableUnit: React.FC<Props> = ({
 
       {/* Floating Combat Text Container */}
       <div className="absolute bottom-0 mb-[-30px] ml-16 -translate-x-1/2 flex flex-col items-center pointer-events-none z-50">
-        {unit.floatingTextEvents.map((event) => (
-          <div
-            key={event.id}
-            className={`
-              animate-float-up font-bold text-lg
-              ${event.type === 'DAMAGE' ? 'text-red-500' : 'text-green-500'}
-            `}
-          >
-            {event.value > 0 && event.type === 'HEAL' ? '+' : ''}
-            {event.value}
-          </div>
-        ))}
+        {unit.floatingTextEvents.map((event) => {
+            let colorClass = "";
+            switch (event.type) {
+                case 'DAMAGE': colorClass = "text-red-500"; break;
+                case 'HEAL': colorClass = "text-green-500"; break;
+                case 'WEAK': colorClass = "text-yellow-400"; break;
+                case 'RESIST': colorClass = "text-blue-400"; break;
+                case 'NULL': colorClass = "text-gray-400"; break;
+                case 'DRAIN': colorClass = "text-purple-400"; break;
+                case 'DEFLECT': colorClass = "text-slate-200"; break;
+                default: colorClass = "text-white";
+            }
+            // Add bold and shadow for affinity text
+            const extraStyle = (event.type !== 'DAMAGE' && event.type !== 'HEAL')
+                ? { textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' }
+                : {};
+
+            return (
+              <div
+                key={event.id}
+                style={extraStyle}
+                className={`
+                  animate-float-up font-bold text-lg
+                  ${colorClass}
+                `}
+              >
+                {event.text}
+              </div>
+            );
+        })}
       </div>
 
       {/* Character Letter */}

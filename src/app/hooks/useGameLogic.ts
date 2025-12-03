@@ -85,7 +85,7 @@ export const useGameLogic = () => {
                  const eventId = `poison-${Date.now()}-${Math.random()}`;
                  newFloatingEvents.push({
                      id: eventId,
-                     value: -damage,
+                     text: `-${damage}`,
                      type: 'DAMAGE'
                  });
                  eventsToRemove.push({ unitId: unit.id, eventId });
@@ -197,7 +197,7 @@ export const useGameLogic = () => {
                      return {
                          ...u,
                          hp: newHp,
-                         floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: actualHeal, type: 'HEAL' }]
+                         floatingTextEvents: [...u.floatingTextEvents, { id: eventId, text: `+${actualHeal}`, type: 'HEAL' }]
                      };
                 }
                 return { ...u, hp: newHp };
@@ -248,7 +248,7 @@ export const useGameLogic = () => {
                   return {
                       ...u,
                       hp: newHp,
-                      floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: actualHeal, type: 'HEAL' }]
+                      floatingTextEvents: [...u.floatingTextEvents, { id: eventId, text: `+${actualHeal}`, type: 'HEAL' }]
                   };
               }
               return u;
@@ -288,6 +288,39 @@ export const useGameLogic = () => {
     const isWeakness = affinity === "WEAK";
     const isResist = affinity === "RESIST";
     const isNull = affinity === "NULL" || affinity === "DRAIN" || affinity === "DEFLECT";
+
+    // Dispatch Affinity Text Event (Slightly before damage)
+    if (affinity !== "NORMAL") {
+        setTimeout(() => {
+            let affinityText = "";
+            let affinityType: "WEAK" | "RESIST" | "NULL" | "DRAIN" | "DEFLECT" | null = null;
+
+            switch (affinity) {
+                case "WEAK": affinityText = "Weakness"; affinityType = "WEAK"; break;
+                case "RESIST": affinityText = "Resist"; affinityType = "RESIST"; break;
+                case "NULL": affinityText = "Nullify"; affinityType = "NULL"; break;
+                case "DRAIN": affinityText = "Drain"; affinityType = "DRAIN"; break;
+                case "DEFLECT": affinityText = "Deflect"; affinityType = "DEFLECT"; break;
+            }
+
+            if (affinityType) {
+                 const affinityEventId = `affinity-${Date.now()}-${Math.random()}`;
+                 setUnits(prev => prev.map(u => {
+                    if (u.id === target.id) {
+                        return {
+                            ...u,
+                            floatingTextEvents: [...u.floatingTextEvents, { id: affinityEventId, text: affinityText, type: affinityType! }]
+                        };
+                    }
+                    return u;
+                 }));
+
+                 setTimeout(() => {
+                    removeFloatingEvent(target.id, affinityEventId);
+                 }, 1000);
+            }
+        }, 300);
+    }
 
     // Resolve Damage
     setTimeout(() => {
@@ -333,7 +366,7 @@ export const useGameLogic = () => {
                 hp: newHp,
                 isDead: newHp === 0,
                 statusEffects: newStatusEffects,
-                floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: -damage, type: 'DAMAGE' }]
+                floatingTextEvents: [...u.floatingTextEvents, { id: eventId, text: `-${damage}`, type: 'DAMAGE' }]
             };
           }
           return u;

@@ -43,8 +43,8 @@ export interface StatusEffect {
 
 export interface FloatingTextEvent {
   id: string;
-  value: number;
-  type: "DAMAGE" | "HEAL";
+  text: string;
+  type: "DAMAGE" | "HEAL" | "WEAK" | "RESIST" | "NULL" | "DRAIN" | "DEFLECT";
 }
 
 export interface ISkillType {
