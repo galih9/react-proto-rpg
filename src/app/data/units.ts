@@ -17,7 +17,7 @@ const UNITS: IUnit[] = [
         description: "Quick scratch onto any enemies",
         targetType: "ANY",
         pointCost: 2,
-        baseDamage: 25,
+        baseNumber: 25,
       },
       {
         id: 1,
@@ -26,7 +26,7 @@ const UNITS: IUnit[] = [
         description: "Throw poison into a single enemy",
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
-        baseDamage: 30,
+        baseNumber: 30,
       },
       {
         id: 2,
@@ -36,7 +36,7 @@ const UNITS: IUnit[] = [
           "Steal any money from the enemy, if they don't have any more money, it will disarm them for 4 turn",
         targetType: "ANY",
         pointCost: 1,
-        baseDamage: 0,
+        baseNumber: 0,
       },
     ],
     contact: {
@@ -76,7 +76,7 @@ const UNITS: IUnit[] = [
         description: "Quick bump onto any enemies",
         targetType: "ANY",
         pointCost: 2,
-        baseDamage: 20,
+        baseNumber: 20,
       },
       {
         id: 1,
@@ -85,7 +85,7 @@ const UNITS: IUnit[] = [
         description: "Float in the sky for 3 turn, gaining high evasion against any attack, while floating, he can still attack",
         targetType: "ANY",
         pointCost: 3,
-        baseDamage: 0,
+        baseNumber: 0,
       },
       {
         id: 2,
@@ -95,7 +95,7 @@ const UNITS: IUnit[] = [
           "Deal high damage and recover health based on half of the damage",
         targetType: "ANY",
         pointCost: 2,
-        baseDamage: 30,
+        baseNumber: 30,
       },
     ],
     contact: {
@@ -135,7 +135,7 @@ const UNITS: IUnit[] = [
         description: "When dying for the first time, he will revive with half health",
         targetType: "SELF",
         pointCost: 0,
-        baseDamage: 0,
+        baseNumber: 0,
       },
       {
         id: 1,
@@ -144,7 +144,7 @@ const UNITS: IUnit[] = [
         description: "Will go into channelling mode once, and the next time having turn will deal devastating damage to an enemy",
         targetType: "ANY",
         pointCost: 3,
-        baseDamage: 100,
+        baseNumber: 100,
       },
       {
         id: 2,
@@ -154,7 +154,7 @@ const UNITS: IUnit[] = [
           "Deal high damage and recover health based on half of the damage",
         targetType: "ANY",
         pointCost: 2,
-        baseDamage: 30,
+        baseNumber: 30,
       },
     ],
     contact: {

@@ -249,7 +249,7 @@ export const useGameLogic = () => {
 
     // Resolve Damage
     setTimeout(() => {
-      let damage = skill.baseDamage || 10;
+      let damage = skill.baseNumber || 10;
 
       // Multipliers
       if (isWeakness) damage = Math.floor(damage * 1.5);

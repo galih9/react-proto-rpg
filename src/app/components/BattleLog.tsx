@@ -7,7 +7,7 @@ interface Props {
 
 export const BattleLog: React.FC<Props> = ({ logs }) => {
   return (
-    <div className="w-full max-w-4xl bg-gray-100 font-mono text-sm p-4 h-48 overflow-y-auto border border-gray-200 rounded shadow-inner">
+    <div className="w-full max-w-4xl bg-gray-100 font-mono text-sm p-4 h-full overflow-y-auto border border-gray-200 rounded shadow-inner">
       {logs.length === 0 && (
         <span className="text-gray-500 italic">Waiting for battle actions...</span>
       )}

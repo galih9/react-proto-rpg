@@ -52,9 +52,9 @@ export interface ISkillType {
   name: string;
   element: Element;
   description: string;
-  baseDamage: number;
   targetType: ISkillTarget;
   pointCost: number;
+  baseNumber: number;
 }
 
 export type IResponseTypes =
