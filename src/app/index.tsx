@@ -174,7 +174,7 @@ export default function App() {
                 )}
 
                 {/* BOTTOM CONTROLS AREA */}
-                <div className="h-16 flex items-center justify-center w-full">
+                <div className="h-16 flex items-center justify-end w-full">
 
                     {phase === "SETUP" && (
                       <button

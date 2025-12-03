@@ -143,7 +143,7 @@ const UNITS: IUnit[] = [
         element: "PHYSICAL",
         description: "Will go into channelling mode once, and the next time having turn will deal devastating damage to an enemy",
         targetType: "ANY",
-        pointCost: 3,
+        pointCost: 2,
         baseNumber: 100,
       },
       {
