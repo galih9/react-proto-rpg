@@ -32,6 +32,7 @@ export const useGameLogic = () => {
   // Target Selection & Animation States
   const [currentActorIndex, setCurrentActorIndex] = useState(0);
   const [attackingUnitId, setAttackingUnitId] = useState<string | null>(null);
+  const [activeEnemyId, setActiveEnemyId] = useState<string | null>(null);
   const [hitTargetId, setHitTargetId] = useState<string | null>(null);
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -593,6 +594,7 @@ export const useGameLogic = () => {
 
     const performNextEnemyAction = () => {
       if (currentPoints <= 0) {
+        setActiveEnemyId(null);
         startPassivePhase("PLAYER_TURN");
         return;
       }
@@ -601,13 +603,19 @@ export const useGameLogic = () => {
       const livingEnemies = currentUnits.filter(
         (u) => u.type === "ENEMY" && !u.isDead
       );
-      if (livingEnemies.length === 0) return;
+      if (livingEnemies.length === 0) {
+        setActiveEnemyId(null);
+        return;
+      }
 
       const attacker = livingEnemies[enemyIndex % livingEnemies.length];
       const alivePlayers = currentUnits.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
       );
-      if (alivePlayers.length === 0) return;
+      if (alivePlayers.length === 0) {
+          setActiveEnemyId(null);
+          return;
+      }
 
       const target =
         alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
@@ -648,6 +656,8 @@ export const useGameLogic = () => {
 
       // 4. Choose Randomly
       const chosenAction = validActions[Math.floor(Math.random() * validActions.length)];
+
+      setActiveEnemyId(attacker.id);
 
       setTimeout(() => {
         // Execute Action
@@ -695,6 +705,7 @@ export const useGameLogic = () => {
     units,
     turnPoints,
     currentActor,
+    activeEnemyId,
     enemies,
     attackingUnitId,
     hitTargetId,

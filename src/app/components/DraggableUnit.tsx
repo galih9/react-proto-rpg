@@ -45,9 +45,12 @@ export const DraggableUnit: React.FC<Props> = ({
     ? "border-4 border-yellow-400"
     : "border-2 border-white";
 
-  const transformStyle = isAttacking
-    ? { transform: `translateX(${unit.type === "ENEMY" ? -50 : 50}px) scale(1.1)` }
-    : { transform: "translateX(0) scale(1)" };
+  const scale = isTurn || isAttacking ? 1.1 : 1;
+  const translateX = isAttacking ? (unit.type === "ENEMY" ? -50 : 50) : 0;
+
+  const transformStyle = {
+      transform: `translateX(${translateX}px) scale(${scale})`
+  };
 
   const hitClass = isHit ? "animate-bounce-hit" : "";
   const cursorClass = isTargetable ? "cursor-crosshair hover:ring-4 hover:ring-red-400" : "cursor-pointer";
