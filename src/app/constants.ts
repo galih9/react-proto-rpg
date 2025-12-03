@@ -133,6 +133,7 @@ const createRaka = (): ActiveUnit => {
     isDead: false,
     floatingTextEvents: [],
     isChanneling: false,
+    channelingSkillId: null,
   };
 };
 
@@ -164,6 +165,7 @@ const createActiveUnitFromDB = (
     isDead: false,
     floatingTextEvents: [],
     isChanneling: false,
+    channelingSkillId: null,
   };
 };
 
