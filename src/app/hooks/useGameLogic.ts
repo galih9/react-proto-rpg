@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType } from "../types";
 import { INITIAL_UNITS } from "../constants";
+import { getValidTargets } from "../utils/targeting";
 
 export const useGameLogic = () => {
   const [phase, setPhase] = useState<Phase>("START");
@@ -225,6 +226,45 @@ export const useGameLogic = () => {
     });
   };
 
+  const executeHeal = (targetId: string, skill: ISkillType) => {
+      const currentUnits = unitsRef.current;
+      const target = currentUnits.find((u) => u.id === targetId);
+
+      if (!target) return;
+
+      const healAmount = skill.baseNumber || 10;
+
+      let eventIdToRemove: string | null = null;
+
+      setUnits((prev) =>
+          prev.map((u) => {
+              if (u.id === target.id) {
+                  const newHp = Math.min(u.maxHp, u.hp + healAmount);
+                  const actualHeal = newHp - u.hp;
+
+                  const eventId = `heal-${Date.now()}-${Math.random()}`;
+                  eventIdToRemove = eventId;
+
+                  return {
+                      ...u,
+                      hp: newHp,
+                      floatingTextEvents: [...u.floatingTextEvents, { id: eventId, value: actualHeal, type: 'HEAL' }]
+                  };
+              }
+              return u;
+          })
+      );
+
+      if (eventIdToRemove) {
+          const id = eventIdToRemove;
+          setTimeout(() => {
+              removeFloatingEvent(target.id, id);
+          }, 1000);
+      }
+
+      addLog(`${target.displayName} heals for ${healAmount} HP.`);
+  };
+
   const executeAttack = (
     attackerId: string,
     targetId: string,
@@ -239,13 +279,15 @@ export const useGameLogic = () => {
 
     if (!attacker || !target) return false;
 
+    // Only set attacking ID if not MULTIPLE to avoid rapid flickering or state confusion in loop,
+    // or we accept it might flicker. For now let's set it.
+    // If it's a loop, this might just show the last one or flicker.
     setAttackingUnitId(attacker.id);
 
     const affinity = target.status[skill.element];
     const isWeakness = affinity === "WEAK";
     const isResist = affinity === "RESIST";
     const isNull = affinity === "NULL" || affinity === "DRAIN" || affinity === "DEFLECT";
-    // Simplify for now: treat drain/deflect as null/0 dmg unless we add complex logic
 
     // Resolve Damage
     setTimeout(() => {
@@ -259,9 +301,8 @@ export const useGameLogic = () => {
       let statusEffectToAdd: StatusEffect | null = null;
 
       if (skill.element === 'BLACK_MAGIC') {
-          // Keep existing logic for black magic poison, or derive from skill properties if added later
            statusEffectToAdd = {
-              id: `poison-${Date.now()}`,
+              id: `poison-${Date.now()}-${Math.random()}`,
               type: 'POISON',
               duration: 3,
               sourceId: attacker.id
@@ -346,47 +387,57 @@ export const useGameLogic = () => {
     );
     const attacker = activePlayers[currentActorIndex % activePlayers.length];
 
-    const target = units.find(u => u.id === unitId);
-    if(!attacker || !target || target.type !== 'ENEMY') return;
+    if (!attacker) return;
 
-    // Use skill cost
-    const cost = interactionState.selectedSkill.pointCost;
+    // VALIDATE TARGET
+    const skill = interactionState.selectedSkill;
+    const validTargets = getValidTargets(skill, attacker, units);
 
-    // Check if enough points (handling potential weakness bonus later)
-    // Actually, turnPoints < 1 check above handles basic requirement.
-    // If cost is 2 and we have 1, do we allow?
-    // User said "sometimes basic attack consuming 2... sometimes 1".
-    // "A turn cannot be initiated if the player has 0 turn points."
-    // If we have 1 point and skill costs 2, let's allow it but go to negative/zero then clamp?
-    // For now, simply deduct.
+    if (!validTargets.includes(unitId)) {
+        // Clicked invalid target, do nothing
+        return;
+    }
 
+    // Determine targets to execute on
+    let targetsToHit: string[] = [];
+    if (skill.targetType === "MULTIPLE") {
+        targetsToHit = validTargets; // Hit all valid targets
+    } else {
+        targetsToHit = [unitId]; // Hit the specific clicked target
+    }
+
+    // Deduct cost
+    const cost = skill.pointCost;
     setTurnPoints(prev => prev - cost);
 
-    // 2. Execute Attack (Returns isWeakness)
-    const isWeakness = executeAttack(
-      attacker.id,
-      target.id,
-      interactionState.selectedSkill
-    );
+    // Execute Actions
+    let anyWeakness = false;
+
+    if (skill.targetType === "SELF") {
+        // HEAL / BUFF logic
+        executeHeal(unitId, skill);
+    } else {
+        // ATTACK logic
+        targetsToHit.forEach((tid) => {
+             const w = executeAttack(attacker.id, tid, skill);
+             if (w) anyWeakness = true;
+        });
+    }
 
     setInteractionState({ mode: "EXECUTING", selectedSkill: null });
 
-    // 3. Handle Turn Cycle & Bonus with Delay
+    // Handle Turn Cycle
     setTimeout(() => {
-        // If Weakness, add bonus point (cost reduction simulation)
-        // If attack cost 2 and was weakness -> effective cost 1.
-        // So we add 1 back.
-        if (isWeakness) {
+        if (anyWeakness) {
             setTurnPoints(prev => prev + 1);
             addLog("Weakness Hit! +1 Turn Point");
         }
 
         setTimeout(() => {
-             // Calculate final points from Ref (safest)
              const finalPoints = turnPointsRef.current;
              const currentUnits = unitsRef.current;
 
-             // Victory Check Immediate
+             // Victory Check
              const activeEnemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead);
              if (activeEnemies.length === 0) {
                  setPhase("VICTORY");
@@ -402,7 +453,7 @@ export const useGameLogic = () => {
                     setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
                 }
              });
-        }, isWeakness ? 1000 : 200);
+        }, anyWeakness ? 1000 : 200);
 
     }, 800);
   };
