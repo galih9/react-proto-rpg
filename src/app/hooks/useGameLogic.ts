@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { Phase, ActiveUnit, Element, LogEntry, InteractionState, StatusEffect } from "../types";
+import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType } from "../types";
 import { INITIAL_UNITS } from "../constants";
 
 export const useGameLogic = () => {
@@ -79,7 +79,7 @@ export const useGameLogic = () => {
              if (effect.type === 'POISON') {
                  const damage = Math.floor(unit.maxHp * 0.05);
                  newHp = Math.max(0, newHp - damage);
-                 logsToAdd.push(`${unit.id} takes ${damage} poison damage.`);
+                 logsToAdd.push(`${unit.displayName} takes ${damage} poison damage.`);
 
                  const eventId = `poison-${Date.now()}-${Math.random()}`;
                  newFloatingEvents.push({
@@ -94,7 +94,7 @@ export const useGameLogic = () => {
              if (newDuration > 0) {
                  newStatusEffects.push({ ...effect, duration: newDuration });
              } else {
-                 logsToAdd.push(`Poison on ${unit.id} expired.`);
+                 logsToAdd.push(`Poison on ${unit.displayName} expired.`);
              }
          });
 
@@ -228,7 +228,7 @@ export const useGameLogic = () => {
   const executeAttack = (
     attackerId: string,
     targetId: string,
-    skillElement: Element
+    skill: ISkillType
   ): boolean => {
     // Returns true if weakness was hit, false otherwise.
     // Does NOT return new points anymore.
@@ -241,30 +241,37 @@ export const useGameLogic = () => {
 
     setAttackingUnitId(attacker.id);
 
-    const isWeakness = target.weakness === skillElement;
+    const affinity = target.status[skill.element];
+    const isWeakness = affinity === "WEAK";
+    const isResist = affinity === "RESIST";
+    const isNull = affinity === "NULL" || affinity === "DRAIN" || affinity === "DEFLECT";
+    // Simplify for now: treat drain/deflect as null/0 dmg unless we add complex logic
 
     // Resolve Damage
     setTimeout(() => {
-      let damage = 0;
+      let damage = skill.baseDamage || 10;
+
+      // Multipliers
+      if (isWeakness) damage = Math.floor(damage * 1.5);
+      if (isResist) damage = Math.floor(damage * 0.5);
+      if (isNull) damage = 0;
+
       let statusEffectToAdd: StatusEffect | null = null;
 
-      if (skillElement === 'BLACK_MAGIC') {
-          damage = 30;
-          statusEffectToAdd = {
+      if (skill.element === 'BLACK_MAGIC') {
+          // Keep existing logic for black magic poison, or derive from skill properties if added later
+           statusEffectToAdd = {
               id: `poison-${Date.now()}`,
               type: 'POISON',
               duration: 3,
               sourceId: attacker.id
           };
-      } else {
-          damage = isWeakness ? 20 : 10;
-          if (target.isGuarding && skillElement === 'PHYSICAL') {
-            damage = Math.floor(damage / 2);
-            addLog(`${target.id} is guarding! Damage reduced.`);
-          } else if (target.isGuarding) {
-             damage = Math.floor(damage / 2);
-             addLog(`${target.id} is guarding! Damage reduced.`);
-          }
+      }
+
+      // Guard Check
+      if (target.isGuarding) {
+         damage = Math.floor(damage / 2);
+         addLog(`${target.displayName} is guarding! Damage reduced.`);
       }
 
       let eventIdToRemove: string | null = null;
@@ -303,12 +310,12 @@ export const useGameLogic = () => {
       setTimeout(() => setHitTargetId(null), 500);
 
       addLog(
-        `${attacker.id} hits ${target.id} (${skillElement}). ${
+        `${attacker.displayName} hits ${target.displayName} (${skill.name}). ${
           isWeakness ? "WEAKNESS!" : ""
-        } -${damage} HP`
+        } ${isResist ? "RESIST!" : ""} ${isNull ? "BLOCKED!" : ""} -${damage} HP`
       );
       if (statusEffectToAdd) {
-          addLog(`${target.id} is poisoned!`);
+          addLog(`${target.displayName} is poisoned!`);
       }
 
       setAttackingUnitId(null);
@@ -321,7 +328,7 @@ export const useGameLogic = () => {
     setInteractionState({ mode: "SKILLS", selectedSkill: null });
   };
 
-  const enterTargetingMode = (skill: Element) => {
+  const enterTargetingMode = (skill: ISkillType) => {
     setInteractionState({ mode: "TARGETING", selectedSkill: skill });
   };
 
@@ -342,18 +349,17 @@ export const useGameLogic = () => {
     const target = units.find(u => u.id === unitId);
     if(!attacker || !target || target.type !== 'ENEMY') return;
 
-    // 1. DEDUCT COST IMMEDIATELY (2 points base)
-    // This triggers the "Loss" animation (4 -> 2)
-    const cost = 2;
-    // We update state based on previous to be safe, but we know what we want
-    // However, if we are at 1 point, we go to -1?
-    // "sometimes the basic attack is consuming 2 turnpoint sometimes... 1"
-    // If we have 1 point and hit weakness, technically cost is 1.
-    // If we deduct 2 from 1, we get -1.
-    // That's fine visually if we add 1 back later (to 0).
-    // Or we clamp?
-    // If we clamp to 0, then add 1, we get 1. Correct.
-    // But if we had 4, went to 2, add 1 -> 3. Correct.
+    // Use skill cost
+    const cost = interactionState.selectedSkill.pointCost;
+
+    // Check if enough points (handling potential weakness bonus later)
+    // Actually, turnPoints < 1 check above handles basic requirement.
+    // If cost is 2 and we have 1, do we allow?
+    // User said "sometimes basic attack consuming 2... sometimes 1".
+    // "A turn cannot be initiated if the player has 0 turn points."
+    // If we have 1 point and skill costs 2, let's allow it but go to negative/zero then clamp?
+    // For now, simply deduct.
+
     setTurnPoints(prev => prev - cost);
 
     // 2. Execute Attack (Returns isWeakness)
@@ -367,15 +373,13 @@ export const useGameLogic = () => {
 
     // 3. Handle Turn Cycle & Bonus with Delay
     setTimeout(() => {
-        // If Weakness, add bonus point
+        // If Weakness, add bonus point (cost reduction simulation)
+        // If attack cost 2 and was weakness -> effective cost 1.
+        // So we add 1 back.
         if (isWeakness) {
             setTurnPoints(prev => prev + 1);
             addLog("Weakness Hit! +1 Turn Point");
         }
-
-        // Wait another moment for the Gain animation (if any) to start/play
-        // Gain animation in TurnPointBar waits 600ms or so.
-        // We need to check end-of-turn AFTER the points have settled.
 
         setTimeout(() => {
              // Calculate final points from Ref (safest)
@@ -398,9 +402,9 @@ export const useGameLogic = () => {
                     setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
                 }
              });
-        }, isWeakness ? 1000 : 200); // Wait longer if we triggered a gain animation
+        }, isWeakness ? 1000 : 200);
 
-    }, 800); // Wait 800ms after deduction to apply bonus (allows consumption animation to finish)
+    }, 800);
   };
 
   const handleGuard = () => {
@@ -414,7 +418,7 @@ export const useGameLogic = () => {
     if (!currentActor) return;
 
     setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
-    addLog(`${currentActor.id} is guarding.`);
+    addLog(`${currentActor.displayName} is guarding.`);
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
@@ -454,7 +458,7 @@ export const useGameLogic = () => {
 
     if (isAdjacent && !isOccupied && x <= 2) {
         moveUnit(currentActor.id, x, y);
-        addLog(`${currentActor.id} moves to (${x}, ${y}).`);
+        addLog(`${currentActor.displayName} moves to (${x}, ${y}).`);
 
         const newPoints = turnPoints - 1;
         setTurnPoints(newPoints);
@@ -481,7 +485,7 @@ export const useGameLogic = () => {
     );
     const currentActor = activePlayers[currentActorIndex % activePlayers.length];
 
-    addLog(`${currentActor.id} waits.`);
+    addLog(`${currentActor.displayName} waits.`);
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
@@ -524,24 +528,28 @@ export const useGameLogic = () => {
       const target =
         alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
 
-      const availableSkills = attacker.skills || ['PHYSICAL', attacker.element];
+      const availableSkills = attacker.skills; // Now ISkillType[]
 
       // AI Decision Logic
       type EnemyAction =
-          | { type: 'ATTACK'; skill: Element; cost: number }
+          | { type: 'ATTACK'; skill: ISkillType; cost: number }
           | { type: 'GUARD'; cost: number }
           | { type: 'WAIT'; cost: number };
 
       let validActions: EnemyAction[] = [];
 
       // 1. Evaluate Attacks
-      availableSkills.forEach(skill => {
-          const isWeakness = target.weakness === skill;
-          const cost = isWeakness ? 1 : 2;
-          if (currentPoints >= cost) {
-              validActions.push({ type: 'ATTACK', skill, cost });
-          }
-      });
+      if (availableSkills && availableSkills.length > 0) {
+        availableSkills.forEach(skill => {
+            const affinity = target.status[skill.element];
+            const isWeakness = affinity === "WEAK";
+            const cost = isWeakness ? (skill.pointCost > 1 ? skill.pointCost - 1 : 1) : skill.pointCost;
+
+            if (currentPoints >= cost) {
+                validActions.push({ type: 'ATTACK', skill, cost });
+            }
+        });
+      }
 
       // 2. Evaluate Guard/Wait (Cost 1)
       if (currentPoints >= 1) {
@@ -549,15 +557,8 @@ export const useGameLogic = () => {
           validActions.push({ type: 'WAIT', cost: 1 });
       }
 
-      // 3. Fallback (shouldn't happen if points >= 1, but safe guard)
+      // 3. Fallback
       if (validActions.length === 0) {
-           // If we have points but no actions (e.g. < 1 point? but loop checks > 0), just end?
-           // Actually, loop condition is currentPoints <= 0.
-           // If currentPoints is 0.5? (Not possible with integers).
-           // If we are here, we must have at least 1 point (from loop guard).
-           // If we have 1 point, Guard/Wait are valid.
-           // So validActions should not be empty.
-           // Just in case:
            validActions.push({ type: 'WAIT', cost: 1 });
       }
 
@@ -573,9 +574,9 @@ export const useGameLogic = () => {
              executeAttack(attacker.id, target.id, chosenAction.skill);
         } else if (chosenAction.type === 'GUARD') {
              setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isGuarding: true } : u));
-             addLog(`${attacker.id} guards.`);
+             addLog(`${attacker.displayName} guards.`);
         } else {
-             addLog(`${attacker.id} waits.`);
+             addLog(`${attacker.displayName} waits.`);
         }
 
         enemyIndex++;

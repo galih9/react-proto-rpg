@@ -1,5 +1,5 @@
 import React from 'react';
-import type { InteractionState, ActiveUnit, Element } from '../types';
+import type { InteractionState, ActiveUnit, ISkillType } from '../types';
 
 interface Props {
   currentActor: ActiveUnit;
@@ -9,7 +9,7 @@ interface Props {
   onWait: () => void;
   onMove: () => void;
   onOpenSkills: () => void;
-  onSelectSkill: (skill: Element) => void;
+  onSelectSkill: (skill: ISkillType) => void;
 }
 
 export const FloatingActionMenu: React.FC<Props> = ({
@@ -42,16 +42,21 @@ export const FloatingActionMenu: React.FC<Props> = ({
 
   if (interactionState.mode === 'SKILLS') {
     return (
-      <div className="absolute top-0 -right-4 translate-x-full z-20 w-40 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
+      <div className="absolute top-0 -right-4 translate-x-full z-20 w-48 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
         <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wide">Select Skill</div>
         {currentActor.skills.map((skill) => (
           <button
-            key={skill}
+            key={skill.id}
             onClick={() => onSelectSkill(skill)}
-            disabled={turnPoints < 2} // All skills now cost 2 base points
+            disabled={turnPoints < skill.pointCost}
             className={btnClass}
+            title={skill.description}
           >
-            {skill === 'PHYSICAL' ? 'Basic Attack' : skill} (2p)
+            <div className="flex justify-between items-center">
+                <span>{skill.name}</span>
+                <span className="text-xs bg-gray-200 px-1 rounded text-gray-700">{skill.pointCost}p</span>
+            </div>
+            <div className="text-[10px] text-gray-500">{skill.element}</div>
           </button>
         ))}
       </div>

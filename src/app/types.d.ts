@@ -47,47 +47,6 @@ export interface FloatingTextEvent {
   type: "DAMAGE" | "HEAL";
 }
 
-export interface ActiveUnit {
-  id: string;
-  type: UnitType;
-  x: number | null;
-  y: number | null;
-  hp: number;
-  maxHp: number;
-  element: Element;
-  weakness: Element;
-  // soon change skills to having ISkillType[]
-  skills: Element[];
-  statusEffects: StatusEffect[];
-  isDead: boolean;
-  isGuarding?: boolean;
-  displayName: string;
-  floatingTextEvents: FloatingTextEvent[];
-}
-
-export interface TileData {
-  x: number;
-  y: number;
-  zone: "PLAYER" | "NEUTRAL" | "ENEMY";
-}
-
-export interface LogEntry {
-  id: number;
-  message: string;
-}
-
-export type InteractionMode =
-  | "MENU"
-  | "SKILLS"
-  | "TARGETING"
-  | "MOVING"
-  | "EXECUTING";
-
-export interface InteractionState {
-  mode: InteractionMode;
-  selectedSkill: Element | null;
-}
-// new skill type
 export interface ISkillType {
   id: number;
   name: string;
@@ -141,4 +100,57 @@ export interface IUnit {
   skills: ISkillType[];
   contact: IUnitInteraction;
   status: Record<Element, ElementAffinity>
+}
+
+// Inherit from IUnit but omit fields that conflict or need specific ActiveUnit handling if any
+// We are keeping x, y, hp (current), type, statusEffects, isDead, isGuarding, displayName, floatingTextEvents
+// We will use IUnit's 'skills' and 'status' directly.
+export interface ActiveUnit extends IUnit {
+  // Overriding/Adding fields specific to active gameplay
+  type: UnitType;
+  x: number | null;
+  y: number | null;
+  hp: number; // Current HP (vs baseHp in IUnit)
+  maxHp: number; // Calculated max HP (likely same as baseHp for now)
+
+  // NOTE: 'element' was in ActiveUnit but not explicitly in IUnit (IUnit has status map).
+  // However, units usually have a base element. The 'data/units.ts' doesn't seem to have a single 'element' field,
+  // only 'status' map.
+  // If the game logic needs a "main element", we might need to keep it or derive it.
+  // Looking at data/units.ts:
+  // "Tuyul" -> status { PHYSICAL: WEAK, FIRE: WEAK ... }
+  // It doesn't explicitly say "Element: FIRE".
+  // However, existing ActiveUnit had 'element'.
+  // I will keep 'element' in ActiveUnit for now as a required field for the game logic (e.g. AI logic might use it),
+  // but I will assign it based on best guess or defaults if not in IUnit.
+  element: Element;
+
+  statusEffects: StatusEffect[];
+  isDead: boolean;
+  isGuarding?: boolean;
+  displayName: string; // Can be same as name
+  floatingTextEvents: FloatingTextEvent[];
+}
+
+export interface TileData {
+  x: number;
+  y: number;
+  zone: "PLAYER" | "NEUTRAL" | "ENEMY";
+}
+
+export interface LogEntry {
+  id: number;
+  message: string;
+}
+
+export type InteractionMode =
+  | "MENU"
+  | "SKILLS"
+  | "TARGETING"
+  | "MOVING"
+  | "EXECUTING";
+
+export interface InteractionState {
+  mode: InteractionMode;
+  selectedSkill: ISkillType | null;
 }
