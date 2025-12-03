@@ -168,7 +168,7 @@ const createActiveUnitFromDB = (
 };
 
 export const INITIAL_UNITS: ActiveUnit[] = [
-  createRaka(),
+  { ...createRaka(), x: 0, y: 0 },
   createActiveUnitFromDB("Tuyul", "p2", "PLAYER", "ICE", null, null),
   createActiveUnitFromDB("Pocong", "e1", "ENEMY", "ICE", 4, 1),
   createActiveUnitFromDB("Genderuwo", "e2", "ENEMY", "WIND", 3, 1),

@@ -404,6 +404,41 @@ export const useGameLogic = () => {
   };
 
   const enterTargetingMode = (skill: ISkillType) => {
+    // START CHANNELING LOGIC (Phase 1)
+    if (skill.isChannelingSkill && currentActor && !currentActor.isChanneling) {
+        if (turnPoints < skill.pointCost) {
+            addLog("Not enough turn points to start channeling!");
+            return;
+        }
+
+        const cost = skill.pointCost;
+        setTurnPoints(prev => prev - cost);
+
+        setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isChanneling: true, channelingSkillId: skill.id } : u));
+        addLog(`${currentActor.displayName} starts channeling ${skill.name}...`);
+
+        setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+
+        setTimeout(() => {
+             processTicksAndAdvance(() => {
+                setInteractionState({ mode: "MENU", selectedSkill: null });
+                const newPoints = turnPointsRef.current - cost;
+                // Note: turnPointsRef might not update immediately, but logic uses calculated check usually.
+                // However, since we updated state, let's rely on calculation.
+                // Re-calculating newPoints here to be safe for logic:
+                if (newPoints <= 0) {
+                    startPassivePhase("ENEMY_TURN");
+                } else {
+                    const activePlayers = unitsRef.current.filter(
+                      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+                    );
+                    setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
+                }
+             });
+        }, 500);
+        return;
+    }
+
     setInteractionState({ mode: "TARGETING", selectedSkill: skill });
   };
 
@@ -443,6 +478,12 @@ export const useGameLogic = () => {
     // Deduct cost
     const cost = skill.pointCost;
     setTurnPoints(prev => prev - cost);
+
+    // Phase 2: Execute Channeling (or normal skill)
+    // If unit IS channeling, we proceed to damage and then reset channeling.
+    if (attacker.isChanneling) {
+        setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: false, channelingSkillId: null } : u));
+    }
 
     // Execute Actions
     let anyWeakness = false;
@@ -694,7 +735,17 @@ export const useGameLogic = () => {
 
   useEffect(() => {
     if (currentActor) {
-        setInteractionState({ mode: "MENU", selectedSkill: null });
+        if (currentActor.isChanneling && currentActor.channelingSkillId !== null) {
+             const skill = currentActor.skills.find(s => s.id === currentActor.channelingSkillId);
+             if (skill) {
+                 setInteractionState({ mode: "TARGETING", selectedSkill: skill });
+                 addLog(`${currentActor.displayName} is ready to release ${skill.name}!`);
+             } else {
+                 setInteractionState({ mode: "MENU", selectedSkill: null });
+             }
+        } else {
+            setInteractionState({ mode: "MENU", selectedSkill: null });
+        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentActor?.id]);
