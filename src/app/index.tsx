@@ -21,6 +21,7 @@ export default function App() {
     units,
     turnPoints,
     currentActor,
+    activeEnemyId,
     attackingUnitId,
     hitTargetId,
     logs,
@@ -127,8 +128,8 @@ export default function App() {
                           <DraggableUnit
                             unit={unitOnTile}
                             isTurn={
-                              phase === "PLAYER_TURN" &&
-                              currentActor?.id === unitOnTile.id
+                              (phase === "PLAYER_TURN" && currentActor?.id === unitOnTile.id) ||
+                              (phase === "ENEMY_TURN" && activeEnemyId === unitOnTile.id)
                             }
                             isAttacking={attackingUnitId === unitOnTile.id}
                             isHit={hitTargetId === unitOnTile.id}
