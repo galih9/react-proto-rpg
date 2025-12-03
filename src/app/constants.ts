@@ -159,7 +159,8 @@ export const INITIAL_UNITS: ActiveUnit[] = [
   createRaka(),
   createActiveUnitFromDB("Tuyul", "p2", "PLAYER", "ICE", null, null),
   createActiveUnitFromDB("Pocong", "e1", "ENEMY", "ICE", 4, 1),
-  createActiveUnitFromDB("Genderuwo", "e2", "ENEMY", "WIND", 3, 2),
+  createActiveUnitFromDB("Genderuwo", "e2", "ENEMY", "WIND", 3, 1),
+  createActiveUnitFromDB("Pocong", "e3", "ENEMY", "ICE", 3, 2),
 ];
 
 export const createGrid = (): TileData[] => {
