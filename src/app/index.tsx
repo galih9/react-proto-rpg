@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { createGrid } from "./constants";
 import { useGameLogic } from "./hooks/useGameLogic";
+import { getValidTargets } from "./utils/targeting";
 
 // Components
 import { GameTile } from "./components/GameTile";
@@ -29,13 +30,21 @@ export default function App() {
     startBattle,
     handleGuard,
     handleWait,
-    handleMoveInitiate, // <--- New
-    handleTileClick, // <--- New
+    handleMoveInitiate,
+    handleTileClick,
     openSkillsMenu,
     enterTargetingMode,
     cancelInteraction,
     handleUnitClick
   } = useGameLogic();
+
+  // Memoize valid targets for the current interaction state to avoid recalculating on every render
+  const validTargetIds = useMemo(() => {
+    if (interactionState.mode === "TARGETING" && interactionState.selectedSkill && currentActor) {
+      return getValidTargets(interactionState.selectedSkill, currentActor, units);
+    }
+    return [];
+  }, [interactionState, currentActor, units]);
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -93,9 +102,8 @@ export default function App() {
 
                     const isCurrentActor = phase === "PLAYER_TURN" && currentActor?.id === unitOnTile?.id;
 
-                    const isTargetable =
-                        interactionState.mode === "TARGETING" &&
-                        unitOnTile?.type === "ENEMY";
+                    // Updated: Use the pre-calculated validTargetIds list
+                    const isTargetable = unitOnTile && validTargetIds.includes(unitOnTile.id);
 
                     // Move validation
                     let isValidMove = false;
