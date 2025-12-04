@@ -121,6 +121,11 @@ export const DraggableUnit: React.FC<Props> = ({
             {unit.displayName}
           </div>
           <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
+          {unit.isChanneling && (
+             <div className="text-[10px] font-bold text-amber-500 text-center animate-pulse">
+               Channeling...
+             </div>
+          )}
         </div>
       </div>
     </div>

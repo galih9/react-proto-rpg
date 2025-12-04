@@ -145,6 +145,7 @@ const UNITS: IUnit[] = [
         targetType: "ANY",
         pointCost: 2,
         baseNumber: 100,
+        isChannelingSkill: true,
       },
       {
         id: 2,

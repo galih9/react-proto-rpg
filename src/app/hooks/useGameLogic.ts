@@ -404,6 +404,7 @@ export const useGameLogic = () => {
   };
 
   const enterTargetingMode = (skill: ISkillType) => {
+    // Standard Targeting Mode (Channeling now also selects target first)
     setInteractionState({ mode: "TARGETING", selectedSkill: skill });
   };
 
@@ -444,7 +445,31 @@ export const useGameLogic = () => {
     const cost = skill.pointCost;
     setTurnPoints(prev => prev - cost);
 
-    // Execute Actions
+    // START CHANNELING (Phase 1 Execution)
+    if (skill.isChannelingSkill && !attacker.isChanneling) {
+         setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: true, channelingSkillId: skill.id, channelingTargetId: targetsToHit[0] || null } : u));
+         addLog(`${attacker.displayName} starts channeling ${skill.name}...`);
+
+         setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+
+         setTimeout(() => {
+             processTicksAndAdvance(() => {
+                setInteractionState({ mode: "MENU", selectedSkill: null });
+                const newPoints = turnPointsRef.current;
+                if (newPoints <= 0) {
+                    startPassivePhase("ENEMY_TURN");
+                } else {
+                    const activePlayers = unitsRef.current.filter(
+                      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+                    );
+                    setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
+                }
+             });
+         }, 500);
+         return;
+    }
+
+    // Execute Actions (Normal or Channeling Release if manually triggered - though Release is auto now)
     let anyWeakness = false;
 
     if (skill.targetType === "SELF") {
@@ -630,28 +655,45 @@ export const useGameLogic = () => {
 
       let validActions: EnemyAction[] = [];
 
-      // 1. Evaluate Attacks
-      if (availableSkills && availableSkills.length > 0) {
-        availableSkills.forEach(skill => {
-            const affinity = target.status[skill.element];
+      // Check for forced release if Channeling
+      const isChanneling = attacker.isChanneling;
+      const chSkill = isChanneling && attacker.channelingSkillId ? attacker.skills.find(s => s.id === attacker.channelingSkillId) : null;
+
+      if (isChanneling && chSkill) {
+            const affinity = target.status[chSkill.element];
             const isWeakness = affinity === "WEAK";
-            const cost = isWeakness ? (skill.pointCost > 1 ? skill.pointCost - 1 : 1) : skill.pointCost;
+            const cost = isWeakness ? (chSkill.pointCost > 1 ? chSkill.pointCost - 1 : 1) : chSkill.pointCost;
 
             if (currentPoints >= cost) {
-                validActions.push({ type: 'ATTACK', skill, cost });
+                 validActions.push({ type: 'ATTACK', skill: chSkill, cost });
+            } else {
+                 // Can't afford release. Wait.
+                 validActions.push({ type: 'WAIT', cost: 1 });
             }
-        });
-      }
+      } else {
+          // 1. Evaluate Attacks
+          if (availableSkills && availableSkills.length > 0) {
+            availableSkills.forEach(skill => {
+                const affinity = target.status[skill.element];
+                const isWeakness = affinity === "WEAK";
+                const cost = isWeakness ? (skill.pointCost > 1 ? skill.pointCost - 1 : 1) : skill.pointCost;
 
-      // 2. Evaluate Guard/Wait (Cost 1)
-      if (currentPoints >= 1) {
-          validActions.push({ type: 'GUARD', cost: 1 });
-          validActions.push({ type: 'WAIT', cost: 1 });
-      }
+                if (currentPoints >= cost) {
+                    validActions.push({ type: 'ATTACK', skill, cost });
+                }
+            });
+          }
 
-      // 3. Fallback
-      if (validActions.length === 0) {
-           validActions.push({ type: 'WAIT', cost: 1 });
+          // 2. Evaluate Guard/Wait (Cost 1)
+          if (currentPoints >= 1) {
+              validActions.push({ type: 'GUARD', cost: 1 });
+              validActions.push({ type: 'WAIT', cost: 1 });
+          }
+
+          // 3. Fallback
+          if (validActions.length === 0) {
+               validActions.push({ type: 'WAIT', cost: 1 });
+          }
       }
 
       // 4. Choose Randomly
@@ -665,7 +707,20 @@ export const useGameLogic = () => {
         setTurnPoints(currentPoints);
 
         if (chosenAction.type === 'ATTACK') {
-             executeAttack(attacker.id, target.id, chosenAction.skill);
+             // Handle Channeling Start/End
+             if (chosenAction.skill.isChannelingSkill) {
+                 if (!attacker.isChanneling) {
+                      // Start
+                      setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: true, channelingSkillId: chosenAction.skill.id } : u));
+                      addLog(`${attacker.displayName} starts channeling ${chosenAction.skill.name}...`);
+                 } else {
+                      // Release
+                      executeAttack(attacker.id, target.id, chosenAction.skill);
+                      setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: false, channelingSkillId: null } : u));
+                 }
+             } else {
+                 executeAttack(attacker.id, target.id, chosenAction.skill);
+             }
         } else if (chosenAction.type === 'GUARD') {
              setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isGuarding: true } : u));
              addLog(`${attacker.displayName} guards.`);
@@ -693,11 +748,51 @@ export const useGameLogic = () => {
   const enemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
 
   useEffect(() => {
-    if (currentActor) {
-        setInteractionState({ mode: "MENU", selectedSkill: null });
+    if (currentActor && phase === "PLAYER_TURN") {
+        if (currentActor.isChanneling && currentActor.channelingSkillId !== null) {
+             const skill = currentActor.skills.find(s => s.id === currentActor.channelingSkillId);
+
+             // Phase 2: Auto Release
+             if (skill) {
+                // Find saved target
+                let targetId = currentActor.channelingTargetId;
+                const currentUnits = unitsRef.current;
+                let target = currentUnits.find(u => u.id === targetId && !u.isDead);
+
+                // If target invalid or dead, pick random enemy
+                if (!target) {
+                    const enemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead);
+                    if (enemies.length > 0) {
+                        const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+                        targetId = randomEnemy.id;
+                        target = randomEnemy;
+                        addLog(`${currentActor.displayName} re-targets to ${target.displayName}!`);
+                    } else {
+                        // No enemies left?
+                         setInteractionState({ mode: "MENU", selectedSkill: null });
+                         return;
+                    }
+                }
+
+                addLog(`${currentActor.displayName} releases ${skill.name}!`);
+
+                // Execute Attack (Free)
+                executeAttack(currentActor.id, targetId!, skill);
+
+                // Clear Channeling State
+                setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isChanneling: false, channelingSkillId: null, channelingTargetId: null } : u));
+
+                // Do NOT advance turn. Remain active with MENU.
+                setInteractionState({ mode: "MENU", selectedSkill: null });
+             } else {
+                 setInteractionState({ mode: "MENU", selectedSkill: null });
+             }
+        } else {
+            setInteractionState({ mode: "MENU", selectedSkill: null });
+        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentActor?.id]);
+  }, [currentActor?.id, phase, currentActor?.isChanneling]);
 
 
   return {

@@ -55,6 +55,7 @@ export interface ISkillType {
   targetType: ISkillTarget;
   pointCost: number;
   baseNumber: number;
+  isChannelingSkill?: boolean;
 }
 
 export type IResponseTypes =
@@ -131,6 +132,8 @@ export interface ActiveUnit extends IUnit {
   displayName: string; // Can be same as name
   floatingTextEvents: FloatingTextEvent[];
   isChanneling: boolean;
+  channelingSkillId: number | null;
+  channelingTargetId: string | null;
 }
 
 export interface TileData {
