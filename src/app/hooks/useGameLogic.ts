@@ -456,6 +456,12 @@ export const useGameLogic = () => {
              processTicksAndAdvance(() => {
                 setInteractionState({ mode: "MENU", selectedSkill: null });
                 const newPoints = turnPointsRef.current;
+                // For channeling start, we advance turn regardless of points?
+                // Actually, standard behavior: if points 0, Enemy Turn. If points > 0, Next Actor.
+                // But channeling consumes turn usually.
+                // The user requested: "-> change actor to tuyul".
+                // This implies "Next Actor".
+
                 if (newPoints <= 0) {
                     startPassivePhase("ENEMY_TURN");
                 } else {
@@ -792,7 +798,7 @@ export const useGameLogic = () => {
         }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentActor?.id, phase, currentActor?.isChanneling]);
+  }, [currentActor?.id, phase]);
 
 
   return {
