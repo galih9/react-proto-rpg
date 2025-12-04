@@ -42,6 +42,7 @@ const createRaka = (): ActiveUnit => {
       targetType: "ANY",
       pointCost: 2,
       baseNumber: 100,
+      isChannelingSkill: true,
     },
     // {
     //   id: 1,
@@ -133,6 +134,7 @@ const createRaka = (): ActiveUnit => {
     isDead: false,
     floatingTextEvents: [],
     isChanneling: false,
+    channelingSkillId: null,
   };
 };
 
@@ -164,6 +166,7 @@ const createActiveUnitFromDB = (
     isDead: false,
     floatingTextEvents: [],
     isChanneling: false,
+    channelingSkillId: null,
   };
 };
 
