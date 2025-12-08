@@ -1,8 +1,58 @@
 import type { IUnit } from "../types";
 
 const UNITS: IUnit[] = [
+  // ward unit
   {
     id: "S1",
+    name: "Wall",
+    lore: "Wall",
+    shortDescription:
+      "A Wall that can block projectile attack",
+    baseHp: 100,
+    baseLevel: 1,
+    skills: [],
+    status: {
+      PHYSICAL: "NORMAL",
+      FIRE: "NORMAL",
+      ICE: "NORMAL",
+      WIND: "NORMAL",
+      BLACK_MAGIC: "NORMAL",
+      SPECIAL: "NORMAL"
+    }
+  },
+  // sentry unit
+  {
+    id: "S1",
+    name: "Jailankung",
+    lore: "A cursed old toy that said been posessed by evil spirit",
+    shortDescription:
+      "A sentry unit that will lock an enemy target",
+    baseHp: 20,
+    baseLevel: 1,
+    skills: [],
+    passiveSkill: [
+      {
+        id: 0,
+        name: "Locked in",
+        element: "PHYSICAL",
+        description: "Quick shoot onto frontliner enemies",
+        targetType: "PROJECTILE_SINGLE",
+        pointCost: 0,
+        baseNumber: 10,
+      }
+    ],
+    status: {
+      PHYSICAL: "NORMAL",
+      FIRE: "NORMAL",
+      ICE: "NORMAL",
+      WIND: "NORMAL",
+      BLACK_MAGIC: "NORMAL",
+      SPECIAL: "NORMAL"
+    }
+  },
+  // creature units
+  {
+    id: "C1",
     name: "Tuyul",
     lore: "A deceased spirit of a baby sacrificed for some ritual. Now the baby is used mainly as a tool to steal other people's money",
     shortDescription:
@@ -39,18 +89,6 @@ const UNITS: IUnit[] = [
         baseNumber: 0,
       },
     ],
-    contact: {
-      recruitOption: [],
-      startRecruit: [],
-      resultRecruit: [],
-      trashtalk: [],
-      taunt: [],
-      dispute: [],
-      begFund: [],
-      begItem: [],
-      askFund: [],
-      askItem: [],
-    },
     status: {
       PHYSICAL: "WEAK",
       FIRE: "WEAK",
@@ -61,7 +99,7 @@ const UNITS: IUnit[] = [
     }
   },
   {
-    id: "S2",
+    id: "C2",
     name: "Pocong",
     lore: "Haunting spirit of a freshly dead body, yearning for revenge.",
     shortDescription:
@@ -98,18 +136,6 @@ const UNITS: IUnit[] = [
         baseNumber: 30,
       },
     ],
-    contact: {
-      recruitOption: [],
-      startRecruit: [],
-      resultRecruit: [],
-      trashtalk: [],
-      taunt: [],
-      dispute: [],
-      begFund: [],
-      begItem: [],
-      askFund: [],
-      askItem: [],
-    },
     status: {
       PHYSICAL: "RESIST",
       FIRE: "WEAK",
@@ -120,7 +146,7 @@ const UNITS: IUnit[] = [
     }
   },
   {
-    id: "S3",
+    id: "C3",
     name: "Genderuwo",
     lore: "A giant spirit who defy death.",
     shortDescription:
@@ -158,18 +184,6 @@ const UNITS: IUnit[] = [
         baseNumber: 30,
       },
     ],
-    contact: {
-      recruitOption: [],
-      startRecruit: [],
-      resultRecruit: [],
-      trashtalk: [],
-      taunt: [],
-      dispute: [],
-      begFund: [],
-      begItem: [],
-      askFund: [],
-      askItem: [],
-    },
     status: {
       PHYSICAL: "DRAIN",
       FIRE: "WEAK",

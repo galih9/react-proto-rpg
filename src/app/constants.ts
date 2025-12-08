@@ -34,16 +34,38 @@ const createRaka = (): ActiveUnit => {
     },
     // prototype
     {
-      id: 1,
-      name: "Bash",
-      element: "PHYSICAL",
+      id: 601,
+      name: "Deploy Wall",
+      element: "SPECIAL",
       description:
-        "Will go into channelling mode once, and the next time having turn will deal devastating damage to an enemy",
-      targetType: "ANY",
+        "Deploying a wall in front of him",
+      targetType: "DEPLOY_FRONT",
       pointCost: 2,
-      baseNumber: 100,
-      isChannelingSkill: true,
+      baseNumber: 0,
+      isChannelingSkill: false,
     },
+    {
+      id: 602,
+      name: "Deploy Jailankung",
+      element: "SPECIAL",
+      description:
+        "Deploying a Sentry Jailankung in front of him",
+      targetType: "DEPLOY_ANY",
+      pointCost: 2,
+      baseNumber: 0,
+      isChannelingSkill: false,
+    },
+    // {
+    //   id: 1,
+    //   name: "Bash",
+    //   element: "PHYSICAL",
+    //   description:
+    //     "Will go into channelling mode once, and the next time having turn will deal devastating damage to an enemy",
+    //   targetType: "ANY",
+    //   pointCost: 2,
+    //   baseNumber: 100,
+    //   isChannelingSkill: true,
+    // },
     // {
     //   id: 1,
     //   name: "Test Target All",
@@ -100,19 +122,6 @@ const createRaka = (): ActiveUnit => {
     SPECIAL: "NORMAL",
   };
 
-  const emptyContact = {
-    recruitOption: [],
-    startRecruit: [],
-    resultRecruit: [],
-    trashtalk: [],
-    taunt: [],
-    dispute: [],
-    begFund: [],
-    begItem: [],
-    askFund: [],
-    askItem: [],
-  };
-
   return {
     id: "p1",
     name: "Raka",
@@ -128,7 +137,6 @@ const createRaka = (): ActiveUnit => {
     maxHp: 100,
     element: "FIRE", // Main element
     skills: skills,
-    contact: emptyContact,
     status: normalStatus,
     statusEffects: [],
     isDead: false,
