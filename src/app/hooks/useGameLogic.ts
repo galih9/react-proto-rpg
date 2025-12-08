@@ -506,10 +506,8 @@ export const useGameLogic = () => {
       setTimeout(() => {
         processTicksAndAdvance(() => {
             setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
-            const newPoints = turnPointsRef.current; // Ref already updated? No, wait.
-            // We updated state above `setTurnPoints(prev => prev - cost)`.
-            // But `turnPointsRef` updates in useEffect.
-            // We should use the calculated value.
+
+            // Fixed: removed unused newPoints
             const nextPoints = turnPoints - skill.pointCost;
 
             if (nextPoints <= 0) {
@@ -672,6 +670,40 @@ export const useGameLogic = () => {
         }, anyWeakness ? 1000 : 200);
 
     }, 800);
+  };
+
+  const handleGuard = () => {
+    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
+
+    const activePlayers = units.filter(
+      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
+
+    if (!currentActor) return;
+
+    setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
+    addLog(`${currentActor.displayName} is guarding.`);
+
+    const newPoints = turnPoints - 1;
+    setTurnPoints(newPoints);
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
+
+    setTimeout(() => {
+      processTicksAndAdvance(() => {
+          setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
+          if (newPoints <= 0) {
+            startPassivePhase("ENEMY_TURN");
+          } else {
+            setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
+          }
+      });
+    }, 200);
+  };
+
+  const handleMoveInitiate = () => {
+    if (turnPoints < 1) return;
+    setInteractionState({ mode: "MOVING", selectedSkill: null, warning: null });
   };
 
   const handleTileClick = (x: number, y: number) => {
