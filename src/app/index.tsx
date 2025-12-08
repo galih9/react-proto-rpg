@@ -113,6 +113,9 @@ export default function App() {
                          const dy = Math.abs(tile.y - currentActor.y!);
                          const isOccupied = units.some(u => u.x === tile.x && u.y === tile.y && !u.isDead);
                          isValidMove = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0) && !isOccupied && tile.x <= 2;
+                    } else if (interactionState.mode === "DEPLOYING" && interactionState.selectedSkill?.targetType === "DEPLOY_ANY") {
+                         const isOccupied = units.some(u => u.x === tile.x && u.y === tile.y && !u.isDead);
+                         isValidMove = !isOccupied && tile.x <= 2;
                     }
 
                     return (
@@ -187,15 +190,22 @@ export default function App() {
 
                     {/* CANCEL BUTTON */}
                     {interactionState.mode !== "MENU" && interactionState.mode !== "EXECUTING" && phase === "PLAYER_TURN" && (
-                        <button
-                            onClick={cancelInteraction}
-                            className="bg-slate-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-slate-700 transition-colors flex items-center gap-2"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            CANCEL ACTION
-                        </button>
+                        <div className="flex flex-col items-center">
+                          <button
+                              onClick={cancelInteraction}
+                              className="bg-slate-600 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-slate-700 transition-colors flex items-center gap-2"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              CANCEL ACTION
+                          </button>
+                          {interactionState.warning && (
+                            <div className="text-red-600 font-bold text-sm mt-1 animate-pulse bg-white/80 px-2 rounded">
+                              {interactionState.warning}
+                            </div>
+                          )}
+                        </div>
                     )}
 
                     {/* Enemy Turn Indicator */}

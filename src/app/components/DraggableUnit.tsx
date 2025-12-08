@@ -13,14 +13,22 @@ interface Props {
   onClick?: () => void;
 }
 
-const getUnitDisplayInfo = (id: string) => {
-  switch (id) {
+const getUnitDisplayInfo = (unit: ActiveUnit) => {
+  // Use first letter of Name
+  if (unit.name === "Wall") return { char: 'W' };
+  if (unit.name === "Jailankung") return { char: 'J' };
+
+  switch (unit.id) {
     case 'p1': return { char: 'M' };
     case 'p2': return { char: 'P' };
     case 'e1': return { char: 'P' };
     case 'e2': return { char: 'P' };
-    default: return { char: id.charAt(0).toUpperCase() };
+    default: return { char: unit.displayName.charAt(0).toUpperCase() };
   }
+};
+
+const isDeployable = (unit: ActiveUnit) => {
+    return unit.name === "Wall" || unit.name === "Jailankung";
 };
 
 export const DraggableUnit: React.FC<Props> = ({
@@ -34,16 +42,29 @@ export const DraggableUnit: React.FC<Props> = ({
   const [{ isDragging }, drag] = useDrag(() => ({
     type: DRAG_TYPE,
     item: { id: unit.id },
-    canDrag: unit.type === "PLAYER",
+    canDrag: unit.type === "PLAYER" && !isDeployable(unit), // Deployables not draggable? Assuming they are static.
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
   }));
 
-  const bgColor = unit.type === "PLAYER" ? "bg-blue-500" : "bg-red-500";
-  const border = isTurn
-    ? "border-4 border-yellow-400"
-    : "border-2 border-white";
+  const isMicroUnit = isDeployable(unit);
+
+  let bgColor = "";
+  let borderColor = "";
+  let shapeClass = "rounded-md"; // Default rounded rect
+
+  if (isMicroUnit) {
+      shapeClass = "rounded-full";
+      bgColor = "bg-white"; // Placeholder? User said "blue border for friendly... red border for enemy"
+      // Wait, user said "circle, blue border for friendly... red border for enemy".
+      // Let's use neutral bg or maybe slight tint?
+      bgColor = unit.type === "PLAYER" ? "bg-blue-100" : "bg-red-100";
+      borderColor = unit.type === "PLAYER" ? "border-4 border-blue-500" : "border-4 border-red-500";
+  } else {
+      bgColor = unit.type === "PLAYER" ? "bg-blue-500" : "bg-red-500";
+      borderColor = isTurn ? "border-4 border-yellow-400" : "border-2 border-white";
+  }
 
   const scale = isTurn || isAttacking ? 1.1 : 1;
   const translateX = isAttacking ? (unit.type === "ENEMY" ? -50 : 50) : 0;
@@ -55,15 +76,18 @@ export const DraggableUnit: React.FC<Props> = ({
   const hitClass = isHit ? "animate-bounce-hit" : "";
   const cursorClass = isTargetable ? "cursor-crosshair hover:ring-4 hover:ring-red-400" : "cursor-pointer";
 
-  const { char } = getUnitDisplayInfo(unit.id);
+  const { char } = getUnitDisplayInfo(unit);
+
+  // If Micro Unit, text color should be dark
+  const textColor = isMicroUnit ? "text-gray-800" : "text-white";
 
   return (
     <div
-      ref={unit.type === "PLAYER" ? (drag as unknown as React.Ref<HTMLDivElement>) : null}
+      ref={unit.type === "PLAYER" && !isMicroUnit ? (drag as unknown as React.Ref<HTMLDivElement>) : null}
       onClick={onClick}
       style={{ ...transformStyle }}
       className={`
-        ${bgColor} ${border} ${hitClass} ${cursorClass} rounded-md w-12 h-12 flex items-center justify-center text-white font-bold shadow-lg
+        ${bgColor} ${borderColor} ${hitClass} ${cursorClass} ${shapeClass} w-12 h-12 flex items-center justify-center ${textColor} font-bold shadow-lg
         transition-all duration-300 ease-in-out relative z-10
         ${isDragging ? "opacity-50" : "opacity-100"}
       `}
