@@ -65,7 +65,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
 
   if (interactionState.mode === 'TARGETING') {
       return (
-        <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-yellow-100/90 backdrop-blur p-2 rounded shadow-xl border border-yellow-300 text-center">
+        <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-yellow-100/90 backdrop-blur p-2 rounded shadow-xl border border-yellow-300 text-center pointer-events-none">
             <span className="text-xs font-bold text-yellow-800">Select Target</span>
         </div>
       );
@@ -73,7 +73,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
 
   if (interactionState.mode === 'MOVING') {
       return (
-        <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-green-100/90 backdrop-blur p-2 rounded shadow-xl border border-green-300 text-center">
+        <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-green-100/90 backdrop-blur p-2 rounded shadow-xl border border-green-300 text-center pointer-events-none">
             <span className="text-xs font-bold text-green-800">Select Tile</span>
         </div>
       );

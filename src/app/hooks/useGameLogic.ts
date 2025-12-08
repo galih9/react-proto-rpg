@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType } from "../types";
 import { INITIAL_UNITS } from "../constants";
+import { UNITS as DB_UNITS } from "../data/units";
 import { getValidTargets } from "../utils/targeting";
 
 export const useGameLogic = () => {
@@ -24,9 +25,10 @@ export const useGameLogic = () => {
 
 
   // Interaction State (For new UI flow)
-  const [interactionState, setInteractionState] = useState<InteractionState>({
+  const [interactionState, setInteractionState] = useState<InteractionState & { warning?: string | null }>({
     mode: "MENU",
     selectedSkill: null,
+    warning: null,
   });
 
   // Target Selection & Animation States
@@ -142,27 +144,62 @@ export const useGameLogic = () => {
     setPhase("PLAYER_TURN");
   };
 
+  // Helper to identify deployables
+  const isDeployable = (unit: ActiveUnit) => {
+      // Check if it's a Wall or Sentry based on Name (since IDs are dynamic)
+      return unit.name === "Wall" || unit.name === "Jailankung";
+  };
+
+  const executePassiveSkills = (ownerType: "PLAYER" | "ENEMY") => {
+      const currentUnits = unitsRef.current;
+      const sentries = currentUnits.filter(u => u.type === ownerType && !u.isDead && u.passiveSkill && u.passiveSkill.length > 0 && u.name === "Jailankung");
+
+      if (sentries.length === 0) return;
+
+      sentries.forEach(sentry => {
+          const skill = sentry.passiveSkill![0]; // Assuming first passive skill
+          if (!skill) return;
+
+          addLog(`${sentry.displayName} (Passive) uses ${skill.name}!`);
+
+          // Determine target
+          // Using getValidTargets. Since Sentry is "PLAYER" type (if deployed by player), it targets enemies.
+          const validTargets = getValidTargets(skill, sentry, currentUnits);
+          if (validTargets.length > 0) {
+               // Execute on first valid target (or logic specific to skill)
+               // Sentry passive logic: "Locked in" -> Projectile Single
+               // getValidTargets handles PROJECTILE_SINGLE correctly
+               const targetId = validTargets[0];
+               executeAttack(sentry.id, targetId, skill);
+          }
+      });
+  };
+
   useEffect(() => {
     if (phase === "PLAYER_TURN") {
       const activePlayers = units.filter(
-        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead && !isDeployable(u)
       );
       if (activePlayers.length === 0) {
+        // Check if we really lost or if we just have only walls left?
+        // Usually if only walls left, it is defeat?
+        // Assuming yes for now.
         addLog("GAME OVER - YOU LOST");
         setPhase("DEFEAT");
         return;
       }
 
       setUnits(prev => prev.map(u => u.type === 'PLAYER' ? { ...u, isGuarding: false } : u));
-      setInteractionState({ mode: "MENU", selectedSkill: null });
+      setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
 
       const points = activePlayers.length * 2;
       setTurnPoints(points);
       setCurrentActorIndex(0);
       addLog(`>>> PLAYER TURN (Points: ${points})`);
     } else if (phase === "ENEMY_TURN") {
-      const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead);
+      const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead && !isDeployable(u));
       if (activeEnemies.length === 0) {
+        // Similarly check victory
         addLog("VICTORY - ALL ENEMIES DEFEATED");
         setPhase("VICTORY");
         return;
@@ -179,51 +216,72 @@ export const useGameLogic = () => {
   const startPassivePhase = (nextPhase: "PLAYER_TURN" | "ENEMY_TURN") => {
     processTicksAndAdvance(() => {
         setPhase("PASSIVE");
-        const healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY";
-        addLog(`--- Passive Phase (${healingType} Heal) ---`);
+        // Logic: Player Sentry -> Enemy Sentry OR Enemy Sentry -> Player Sentry?
+        // Requirement: "player turn -> passive phase start -> if any player sentry action -> if any enemy sentry action"
+        // And: "enemy turn -> passive phase start -> if any enemy sentry action -> if any player sentry action"
 
+        const previousPhase = nextPhase === "ENEMY_TURN" ? "PLAYER_TURN" : "ENEMY_TURN";
+        const firstActor = previousPhase === "PLAYER_TURN" ? "PLAYER" : "ENEMY";
+        const secondActor = previousPhase === "PLAYER_TURN" ? "ENEMY" : "PLAYER";
+
+        addLog(`--- Passive Phase ---`);
+
+        // Execute Sentries
         setTimeout(() => {
-          const eventsToRemove: { unitId: string; eventId: string }[] = [];
+             executePassiveSkills(firstActor);
+             setTimeout(() => {
+                 executePassiveSkills(secondActor);
 
-          setUnits((prev) =>
-            prev.map((u) => {
-              if (u.type === healingType && !u.isDead && u.hp < u.maxHp) {
-                const healAmount = 5;
-                const newHp = Math.min(u.maxHp, u.hp + healAmount);
-                const actualHeal = newHp - u.hp;
+                 // Perform Heals
+                 const healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY"; // Heal the side that just finished?
+                 // Original logic: healed the side that is *about to start*?
+                 // Wait, original: `healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY"`
+                 // If next is ENEMY, heal PLAYER. So it heals the one who just finished.
+                 // Let's keep that.
 
-                if (actualHeal > 0) {
-                     const eventId = `heal-${Date.now()}-${Math.random()}`;
-                     eventsToRemove.push({ unitId: u.id, eventId });
-                     return {
-                         ...u,
-                         hp: newHp,
-                         floatingTextEvents: [...u.floatingTextEvents, { id: eventId, text: `+${actualHeal}`, type: 'HEAL' }]
-                     };
-                }
-                return { ...u, hp: newHp };
-              }
-              return u;
-            })
-          );
+                 setTimeout(() => {
+                      const eventsToRemove: { unitId: string; eventId: string }[] = [];
+                      setUnits((prev) =>
+                        prev.map((u) => {
+                          if (u.type === healingType && !u.isDead && u.hp < u.maxHp && !isDeployable(u)) { // Don't heal walls automatically? Or yes? Assuming no auto-heal for walls/sentries
+                            const healAmount = 5;
+                            const newHp = Math.min(u.maxHp, u.hp + healAmount);
+                            const actualHeal = newHp - u.hp;
 
-          if (eventsToRemove.length > 0) {
-               setTimeout(() => {
-                   setUnits(prev => prev.map(u => {
-                       const eventsForUnit = eventsToRemove.filter(e => e.unitId === u.id).map(e => e.eventId);
-                       if (eventsForUnit.length > 0) {
-                           return {
-                               ...u,
-                               floatingTextEvents: u.floatingTextEvents.filter(e => !eventsForUnit.includes(e.id))
-                           };
-                       }
-                       return u;
-                   }));
-               }, 1000);
-          }
+                            if (actualHeal > 0) {
+                                 const eventId = `heal-${Date.now()}-${Math.random()}`;
+                                 eventsToRemove.push({ unitId: u.id, eventId });
+                                 return {
+                                     ...u,
+                                     hp: newHp,
+                                     floatingTextEvents: [...u.floatingTextEvents, { id: eventId, text: `+${actualHeal}`, type: 'HEAL' }]
+                                 };
+                            }
+                            return { ...u, hp: newHp };
+                          }
+                          return u;
+                        })
+                      );
 
-          setPhase(nextPhase);
-        }, 1500);
+                      if (eventsToRemove.length > 0) {
+                           setTimeout(() => {
+                               setUnits(prev => prev.map(u => {
+                                   const eventsForUnit = eventsToRemove.filter(e => e.unitId === u.id).map(e => e.eventId);
+                                   if (eventsForUnit.length > 0) {
+                                       return {
+                                           ...u,
+                                           floatingTextEvents: u.floatingTextEvents.filter(e => !eventsForUnit.includes(e.id))
+                                       };
+                                   }
+                                   return u;
+                               }));
+                           }, 1000);
+                      }
+
+                      setPhase(nextPhase);
+                 }, 1000);
+             }, 800);
+        }, 500);
     });
   };
 
@@ -400,20 +458,110 @@ export const useGameLogic = () => {
   };
 
   const openSkillsMenu = () => {
-    setInteractionState({ mode: "SKILLS", selectedSkill: null });
+    setInteractionState({ mode: "SKILLS", selectedSkill: null, warning: null });
   };
 
   const enterTargetingMode = (skill: ISkillType) => {
-    // Standard Targeting Mode (Channeling now also selects target first)
-    setInteractionState({ mode: "TARGETING", selectedSkill: skill });
+    // Check Deployment Validity for Warning
+    let warning: string | null = null;
+    const activePlayers = units.filter(
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const attacker = activePlayers[currentActorIndex % activePlayers.length];
+
+    if (skill.targetType === "DEPLOY_FRONT") {
+        if (attacker && attacker.x !== null && attacker.y !== null) {
+             const targetX = attacker.x + 1;
+             const targetY = attacker.y;
+             const isOccupied = units.some(u => u.x === targetX && u.y === targetY && !u.isDead);
+             // Assuming Player Zone 0-1, Neutral 2, Enemy 3-4.
+             // If player is at x=1, front is x=2 (Neutral).
+             // If player is at x=2, front is x=3 (Enemy Zone).
+             // Can we deploy into Enemy Zone? User said "not possible to deploy into enemy territory because of the neutral area".
+             // Assuming "Enemy Territory" means Enemy Zone.
+             // So valid X are <= 2 (Player + Neutral).
+             // So if targetX > 2, invalid.
+             if (isOccupied || targetX > 2) {
+                 warning = "Cannot deploy here!";
+             }
+        }
+    }
+
+    setInteractionState({ mode: "TARGETING", selectedSkill: skill, warning });
   };
 
   const cancelInteraction = () => {
-    setInteractionState({ mode: "MENU", selectedSkill: null });
+    setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
+  };
+
+  const deployUnit = (skill: ISkillType, targetX: number, targetY: number) => {
+      const activePlayers = units.filter(
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+      );
+      const attacker = activePlayers[currentActorIndex % activePlayers.length];
+
+      if (!attacker) return;
+
+      const deployableName = skill.id === 601 ? "Wall" : "Jailankung";
+      const dbUnit = DB_UNITS.find(u => u.name === deployableName);
+
+      if (!dbUnit) {
+          addLog("Error: Deployable unit data not found.");
+          return;
+      }
+
+      // Create new unit
+      const newUnit: ActiveUnit = {
+          ...dbUnit,
+          id: `d-${Date.now()}-${Math.random()}`,
+          type: attacker.type, // Inherit type from deployer (PLAYER)
+          displayName: dbUnit.name,
+          x: targetX,
+          y: targetY,
+          hp: dbUnit.baseHp,
+          maxHp: dbUnit.baseHp,
+          element: "PHYSICAL", // Default or specific?
+          statusEffects: [],
+          isDead: false,
+          floatingTextEvents: [],
+          isChanneling: false,
+          channelingSkillId: null,
+          channelingTargetId: null,
+          status: dbUnit.status
+      };
+
+      setUnits(prev => [...prev, newUnit]);
+      setTurnPoints(prev => prev - skill.pointCost);
+      addLog(`${attacker.displayName} deployed ${deployableName}!`);
+
+      setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
+
+      setTimeout(() => {
+        processTicksAndAdvance(() => {
+            setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
+            const newPoints = turnPointsRef.current; // Ref already updated? No, wait.
+            // We updated state above `setTurnPoints(prev => prev - cost)`.
+            // But `turnPointsRef` updates in useEffect.
+            // We should use the calculated value.
+            const nextPoints = turnPoints - skill.pointCost;
+
+            if (nextPoints <= 0) {
+                startPassivePhase("ENEMY_TURN");
+            } else {
+                setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
+            }
+        });
+      }, 500);
   };
 
   const handleUnitClick = (unitId: string) => {
     if (interactionState.mode !== "TARGETING" || !interactionState.selectedSkill) return;
+
+    // Check if skill is DEPLOY type. If so, ignore unit click (unless we want to support clicking a unit to deploy ON it? No, must be empty).
+    // Actually, DEPLOY_FRONT is implicit target.
+    // DEPLOY_ANY targets a TILE.
+    // So handleUnitClick is mainly for attacks/heals.
+    if (interactionState.selectedSkill.targetType.startsWith("DEPLOY")) return;
 
     if (turnPoints < 1) return;
 
@@ -450,17 +598,12 @@ export const useGameLogic = () => {
          setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: true, channelingSkillId: skill.id, channelingTargetId: targetsToHit[0] || null } : u));
          addLog(`${attacker.displayName} starts channeling ${skill.name}...`);
 
-         setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+         setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
 
          setTimeout(() => {
              processTicksAndAdvance(() => {
-                setInteractionState({ mode: "MENU", selectedSkill: null });
+                setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
                 const newPoints = turnPointsRef.current;
-                // For channeling start, we advance turn regardless of points?
-                // Actually, standard behavior: if points 0, Enemy Turn. If points > 0, Next Actor.
-                // But channeling consumes turn usually.
-                // The user requested: "-> change actor to tuyul".
-                // This implies "Next Actor".
 
                 if (newPoints <= 0) {
                     startPassivePhase("ENEMY_TURN");
@@ -475,7 +618,7 @@ export const useGameLogic = () => {
          return;
     }
 
-    // Execute Actions (Normal or Channeling Release if manually triggered - though Release is auto now)
+    // Execute Actions (Normal)
     let anyWeakness = false;
 
     if (skill.targetType === "SELF") {
@@ -489,7 +632,7 @@ export const useGameLogic = () => {
         });
     }
 
-    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
 
     // Handle Turn Cycle
     setTimeout(() => {
@@ -503,7 +646,7 @@ export const useGameLogic = () => {
              const currentUnits = unitsRef.current;
 
              // Victory Check
-             const activeEnemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead);
+             const activeEnemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead && !isDeployable(u));
              if (activeEnemies.length === 0) {
                  setPhase("VICTORY");
                  addLog("VICTORY - ALL ENEMIES DEFEATED");
@@ -511,7 +654,7 @@ export const useGameLogic = () => {
              }
 
              processTicksAndAdvance(() => {
-                setInteractionState({ mode: "MENU", selectedSkill: null });
+                setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
                 if (finalPoints <= 0) {
                     startPassivePhase("ENEMY_TURN");
                 } else {
@@ -538,11 +681,11 @@ export const useGameLogic = () => {
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
-    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
 
     setTimeout(() => {
       processTicksAndAdvance(() => {
-          setInteractionState({ mode: "MENU", selectedSkill: null });
+          setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
           if (newPoints <= 0) {
             startPassivePhase("ENEMY_TURN");
           } else {
@@ -554,11 +697,11 @@ export const useGameLogic = () => {
 
   const handleMoveInitiate = () => {
     if (turnPoints < 1) return;
-    setInteractionState({ mode: "MOVING", selectedSkill: null });
+    setInteractionState({ mode: "MOVING", selectedSkill: null, warning: null });
   };
 
   const handleTileClick = (x: number, y: number) => {
-    if (interactionState.mode !== "MOVING" || phase !== "PLAYER_TURN") return;
+    if (phase !== "PLAYER_TURN") return;
 
     const activePlayers = units.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
@@ -566,30 +709,52 @@ export const useGameLogic = () => {
     const currentActor = activePlayers[currentActorIndex % activePlayers.length];
     if (!currentActor || currentActor.x === null || currentActor.y === null) return;
 
-    const dx = Math.abs(x - currentActor.x);
-    const dy = Math.abs(y - currentActor.y);
-    const isAdjacent = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
+    // 1. MOVE ACTION
+    if (interactionState.mode === "MOVING") {
+        const dx = Math.abs(x - currentActor.x);
+        const dy = Math.abs(y - currentActor.y);
+        const isAdjacent = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0);
 
-    const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
+        const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
 
-    if (isAdjacent && !isOccupied && x <= 2) {
-        moveUnit(currentActor.id, x, y);
-        addLog(`${currentActor.displayName} moves to (${x}, ${y}).`);
+        if (isAdjacent && !isOccupied && x <= 2) {
+            moveUnit(currentActor.id, x, y);
+            addLog(`${currentActor.displayName} moves to (${x}, ${y}).`);
 
-        const newPoints = turnPoints - 1;
-        setTurnPoints(newPoints);
-        setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+            const newPoints = turnPoints - 1;
+            setTurnPoints(newPoints);
+            setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
 
-        setTimeout(() => {
-           processTicksAndAdvance(() => {
-                setInteractionState({ mode: "MENU", selectedSkill: null });
-                if (newPoints <= 0) {
-                    startPassivePhase("ENEMY_TURN");
-                } else {
-                    setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
-                }
-           });
-        }, 300);
+            setTimeout(() => {
+               processTicksAndAdvance(() => {
+                    setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
+                    if (newPoints <= 0) {
+                        startPassivePhase("ENEMY_TURN");
+                    } else {
+                        setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
+                    }
+               });
+            }, 300);
+        }
+    }
+    // 2. DEPLOY ACTION
+    else if (interactionState.mode === "TARGETING" && interactionState.selectedSkill) {
+        const skill = interactionState.selectedSkill;
+        if (skill.targetType === "DEPLOY_FRONT") {
+             // Validate click is on the front tile
+             const targetX = currentActor.x + 1;
+             const targetY = currentActor.y;
+             if (x === targetX && y === targetY) {
+                 if (interactionState.warning) return; // Blocked
+                 deployUnit(skill, x, y);
+             }
+        } else if (skill.targetType === "DEPLOY_ANY") {
+             // Validate empty and player/neutral zone
+             const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
+             if (!isOccupied && x <= 2) {
+                 deployUnit(skill, x, y);
+             }
+        }
     }
   };
 
@@ -605,11 +770,11 @@ export const useGameLogic = () => {
 
     const newPoints = turnPoints - 1;
     setTurnPoints(newPoints);
-    setInteractionState({ mode: "EXECUTING", selectedSkill: null });
+    setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
 
     setTimeout(() => {
       processTicksAndAdvance(() => {
-          setInteractionState({ mode: "MENU", selectedSkill: null });
+          setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
           if (newPoints <= 0) {
             startPassivePhase("ENEMY_TURN");
           } else {
@@ -632,7 +797,7 @@ export const useGameLogic = () => {
 
       const currentUnits = unitsRef.current;
       const livingEnemies = currentUnits.filter(
-        (u) => u.type === "ENEMY" && !u.isDead
+        (u) => u.type === "ENEMY" && !u.isDead && !isDeployable(u)
       );
       if (livingEnemies.length === 0) {
         setActiveEnemyId(null);
@@ -767,7 +932,7 @@ export const useGameLogic = () => {
 
                 // If target invalid or dead, pick random enemy
                 if (!target) {
-                    const enemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead);
+                    const enemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead && !isDeployable(u));
                     if (enemies.length > 0) {
                         const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
                         targetId = randomEnemy.id;
@@ -775,7 +940,7 @@ export const useGameLogic = () => {
                         addLog(`${currentActor.displayName} re-targets to ${target.displayName}!`);
                     } else {
                         // No enemies left?
-                         setInteractionState({ mode: "MENU", selectedSkill: null });
+                         setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
                          return;
                     }
                 }
@@ -789,12 +954,12 @@ export const useGameLogic = () => {
                 setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isChanneling: false, channelingSkillId: null, channelingTargetId: null } : u));
 
                 // Do NOT advance turn. Remain active with MENU.
-                setInteractionState({ mode: "MENU", selectedSkill: null });
+                setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
              } else {
-                 setInteractionState({ mode: "MENU", selectedSkill: null });
+                 setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
              }
         } else {
-            setInteractionState({ mode: "MENU", selectedSkill: null });
+            setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
         }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

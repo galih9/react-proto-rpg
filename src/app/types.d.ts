@@ -124,6 +124,7 @@ export type InteractionMode =
 export interface InteractionState {
   mode: InteractionMode;
   selectedSkill: ISkillType | null;
+  warning?: string | null;
 }
 
 export type MoodType = "CONFIDENT" | "ANGRY" | "CONFUSED" | "PITY" | "DISRESPECT" | "SATISFY";
