@@ -461,39 +461,6 @@ export const useGameLogic = () => {
     setInteractionState({ mode: "SKILLS", selectedSkill: null, warning: null });
   };
 
-  const enterTargetingMode = (skill: ISkillType) => {
-    // Check Deployment Validity for Warning
-    let warning: string | null = null;
-    const activePlayers = units.filter(
-        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
-    );
-    const attacker = activePlayers[currentActorIndex % activePlayers.length];
-
-    if (skill.targetType === "DEPLOY_FRONT") {
-        if (attacker && attacker.x !== null && attacker.y !== null) {
-             const targetX = attacker.x + 1;
-             const targetY = attacker.y;
-             const isOccupied = units.some(u => u.x === targetX && u.y === targetY && !u.isDead);
-             // Assuming Player Zone 0-1, Neutral 2, Enemy 3-4.
-             // If player is at x=1, front is x=2 (Neutral).
-             // If player is at x=2, front is x=3 (Enemy Zone).
-             // Can we deploy into Enemy Zone? User said "not possible to deploy into enemy territory because of the neutral area".
-             // Assuming "Enemy Territory" means Enemy Zone.
-             // So valid X are <= 2 (Player + Neutral).
-             // So if targetX > 2, invalid.
-             if (isOccupied || targetX > 2) {
-                 warning = "Cannot deploy here!";
-             }
-        }
-    }
-
-    setInteractionState({ mode: "TARGETING", selectedSkill: skill, warning });
-  };
-
-  const cancelInteraction = () => {
-    setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
-  };
-
   const deployUnit = (skill: ISkillType, targetX: number, targetY: number) => {
       const activePlayers = units.filter(
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
@@ -554,13 +521,54 @@ export const useGameLogic = () => {
       }, 500);
   };
 
+  const enterTargetingMode = (skill: ISkillType) => {
+    let warning: string | null = null;
+    const activePlayers = units.filter(
+        (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
+    );
+    const attacker = activePlayers[currentActorIndex % activePlayers.length];
+
+    if (skill.targetType === "DEPLOY_FRONT") {
+        if (attacker && attacker.x !== null && attacker.y !== null) {
+             const targetX = attacker.x + 1;
+             const targetY = attacker.y;
+             const isOccupied = units.some(u => u.x === targetX && u.y === targetY && !u.isDead);
+
+             // Check validity (Empty & Player/Neutral Zone)
+             // Assuming deploy front can only be done in player/neutral zones?
+             // Or at least not blocked.
+             // If player is at x=2, front is x=3 (Enemy Zone).
+             // User said "not possible to deploy into enemy territory".
+             // So targetX must be <= 2.
+
+             if (isOccupied || targetX > 2) {
+                 warning = "Cannot deploy here!";
+                 // Show warning but stay in SKILLS menu (don't execute)
+                 setInteractionState({ mode: "SKILLS", selectedSkill: null, warning });
+             } else {
+                 // Valid. Execute immediately.
+                 deployUnit(skill, targetX, targetY);
+             }
+        }
+        return;
+    } else if (skill.targetType === "DEPLOY_ANY") {
+        // Switch to DEPLOYING mode (Select Tile)
+        setInteractionState({ mode: "DEPLOYING", selectedSkill: skill, warning: null });
+        return;
+    }
+
+    // Default Targeting Mode (for Attacks/Heals)
+    setInteractionState({ mode: "TARGETING", selectedSkill: skill, warning });
+  };
+
+  const cancelInteraction = () => {
+    setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
+  };
+
   const handleUnitClick = (unitId: string) => {
-    if (interactionState.mode !== "TARGETING" || !interactionState.selectedSkill) return;
+    if ((interactionState.mode !== "TARGETING" && interactionState.mode !== "DEPLOYING") || !interactionState.selectedSkill) return;
 
     // Check if skill is DEPLOY type. If so, ignore unit click (unless we want to support clicking a unit to deploy ON it? No, must be empty).
-    // Actually, DEPLOY_FRONT is implicit target.
-    // DEPLOY_ANY targets a TILE.
-    // So handleUnitClick is mainly for attacks/heals.
     if (interactionState.selectedSkill.targetType.startsWith("DEPLOY")) return;
 
     if (turnPoints < 1) return;
@@ -666,40 +674,6 @@ export const useGameLogic = () => {
     }, 800);
   };
 
-  const handleGuard = () => {
-    if (turnPoints < 1 || phase !== "PLAYER_TURN") return;
-
-    const activePlayers = units.filter(
-      (u) => u.type === "PLAYER" && u.x !== null && !u.isDead
-    );
-    const currentActor = activePlayers[currentActorIndex % activePlayers.length];
-
-    if (!currentActor) return;
-
-    setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isGuarding: true } : u));
-    addLog(`${currentActor.displayName} is guarding.`);
-
-    const newPoints = turnPoints - 1;
-    setTurnPoints(newPoints);
-    setInteractionState({ mode: "EXECUTING", selectedSkill: null, warning: null });
-
-    setTimeout(() => {
-      processTicksAndAdvance(() => {
-          setInteractionState({ mode: "MENU", selectedSkill: null, warning: null });
-          if (newPoints <= 0) {
-            startPassivePhase("ENEMY_TURN");
-          } else {
-            setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
-          }
-      });
-    }, 200);
-  };
-
-  const handleMoveInitiate = () => {
-    if (turnPoints < 1) return;
-    setInteractionState({ mode: "MOVING", selectedSkill: null, warning: null });
-  };
-
   const handleTileClick = (x: number, y: number) => {
     if (phase !== "PLAYER_TURN") return;
 
@@ -738,17 +712,9 @@ export const useGameLogic = () => {
         }
     }
     // 2. DEPLOY ACTION
-    else if (interactionState.mode === "TARGETING" && interactionState.selectedSkill) {
+    else if (interactionState.mode === "DEPLOYING" && interactionState.selectedSkill) {
         const skill = interactionState.selectedSkill;
-        if (skill.targetType === "DEPLOY_FRONT") {
-             // Validate click is on the front tile
-             const targetX = currentActor.x + 1;
-             const targetY = currentActor.y;
-             if (x === targetX && y === targetY) {
-                 if (interactionState.warning) return; // Blocked
-                 deployUnit(skill, x, y);
-             }
-        } else if (skill.targetType === "DEPLOY_ANY") {
+        if (skill.targetType === "DEPLOY_ANY") {
              // Validate empty and player/neutral zone
              const isOccupied = units.some(u => u.x === x && u.y === y && !u.isDead);
              if (!isOccupied && x <= 2) {

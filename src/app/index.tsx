@@ -113,6 +113,9 @@ export default function App() {
                          const dy = Math.abs(tile.y - currentActor.y!);
                          const isOccupied = units.some(u => u.x === tile.x && u.y === tile.y && !u.isDead);
                          isValidMove = (dx <= 1 && dy <= 1) && !(dx === 0 && dy === 0) && !isOccupied && tile.x <= 2;
+                    } else if (interactionState.mode === "DEPLOYING" && interactionState.selectedSkill?.targetType === "DEPLOY_ANY") {
+                         const isOccupied = units.some(u => u.x === tile.x && u.y === tile.y && !u.isDead);
+                         isValidMove = !isOccupied && tile.x <= 2;
                     }
 
                     return (

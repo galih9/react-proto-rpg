@@ -119,6 +119,7 @@ export type InteractionMode =
   | "SKILLS"
   | "TARGETING"
   | "MOVING"
+  | "DEPLOYING"
   | "EXECUTING";
 
 export interface InteractionState {
