@@ -12,9 +12,13 @@ import { BattleLog } from "./components/BattleLog";
 import { FloatingActionMenu } from "./components/FloatingActionMenu";
 import { TurnPointBar } from "./components/TurnPointBar";
 import { Popup } from "./components/Popup";
+import { PauseMenu } from "./components/PauseMenu";
+import { Encyclopedia } from "./components/Encyclopedia";
 
 export default function App() {
   const [tiles] = useState(createGrid());
+  const [isPaused, setIsPaused] = useState(false);
+  const [showEncyclopedia, setShowEncyclopedia] = useState(false);
 
   const {
     phase,
@@ -67,10 +71,19 @@ export default function App() {
         {phase !== "START" && (
           <div className="w-full max-w-6xl flex justify-between mb-8 p-2 border-b">
              <h1 className="text-2xl font-bold text-slate-800">Tactics Game</h1>
-             <div className="flex gap-4">
+             <div className="flex gap-4 items-center">
                 <p className="font-bold text-lg">
                   Phase: <span className="text-yellow-600">{phase}</span>
                 </p>
+                <button
+                  onClick={() => setIsPaused(true)}
+                  className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-full transition-colors"
+                  aria-label="Pause Game"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
              </div>
           </div>
         )}
@@ -242,6 +255,23 @@ export default function App() {
             message="All your units have been defeated."
             onRestart={initializeGame}
           />
+        )}
+
+        {/* --- PAUSE MENU --- */}
+        {isPaused && !showEncyclopedia && (
+          <PauseMenu
+            onResume={() => setIsPaused(false)}
+            onRestart={() => {
+              initializeGame();
+              setIsPaused(false);
+            }}
+            onEncyclopedia={() => setShowEncyclopedia(true)}
+          />
+        )}
+
+        {/* --- ENCYCLOPEDIA --- */}
+        {showEncyclopedia && (
+          <Encyclopedia onClose={() => setShowEncyclopedia(false)} />
         )}
       </div>
     </DndProvider>

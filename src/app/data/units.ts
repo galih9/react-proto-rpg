@@ -195,6 +195,6 @@ const UNITS: IUnit[] = [
   },
 ];
 
-const SENTRY = [];
+const SENTRY: IUnit[] = [];
 
 export { UNITS, SENTRY };
