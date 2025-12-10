@@ -32,8 +32,6 @@ export const getValidTargets = (
       break;
 
     case "ANY_ENEMY":
-    case "ANY":
-    case "MULTIPLE": // Keeping legacy types mapped to enemies for now if they act as ANY
       // Target any single opponent
       opponents.forEach((u) => targets.push(u.id));
       break;
