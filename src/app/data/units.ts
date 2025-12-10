@@ -10,6 +10,9 @@ const UNITS: IUnit[] = [
       "A Wall that can block projectile attack",
     baseHp: 100,
     baseLevel: 1,
+    agility: 100,
+    strength: 100,
+    inteligence: 100,
     skills: [],
     status: {
       PHYSICAL: "NORMAL",
@@ -30,6 +33,9 @@ const UNITS: IUnit[] = [
     baseHp: 20,
     baseLevel: 1,
     skills: [],
+    agility: 0,
+    strength: 6,
+    inteligence: 0,
     passiveSkill: [
       {
         id: 0,
@@ -54,6 +60,10 @@ const UNITS: IUnit[] = [
   {
     id: "C1",
     name: "Tuyul",
+    agility: 15,
+    strength: 8,
+    inteligence: 4,
+    moneyCarried: 100,
     lore: "A deceased spirit of a baby sacrificed for some ritual. Now the baby is used mainly as a tool to steal other people's money",
     shortDescription:
       "An agile spirit, capable to steal and disarming the enemies",
@@ -106,6 +116,10 @@ const UNITS: IUnit[] = [
       "A ferocious spirit, and a decent tanker",
     baseHp: 120,
     baseLevel: 1,
+    agility: 8,
+    strength: 10,
+    inteligence: 5,
+    moneyCarried: 100,
     skills: [
       {
         id: 0,
@@ -153,6 +167,10 @@ const UNITS: IUnit[] = [
       "A beefy unstopable tank",
     baseHp: 300,
     baseLevel: 1,
+    agility: 4,
+    strength: 20,
+    inteligence: 6,
+    moneyCarried: 120,
     skills: [
       {
         id: 0,

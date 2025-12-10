@@ -200,6 +200,10 @@ const createRaka = (): ActiveUnit => {
     isChanneling: false,
     channelingSkillId: null,
     channelingTargetId: null,
+    agility: 10,
+    strength: 10,
+    inteligence: 10,
+    moneyCarried: 0
   };
 };
 

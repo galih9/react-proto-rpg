@@ -85,6 +85,10 @@ export interface IUnit {
   skills: ISkillType[];
   passiveSkill?: ISkillType[];
   status: Record<Element, ElementAffinity>
+  moneyCarried?: number;
+  strength: number;
+  agility: number;
+  inteligence: number;
 }
 
 export interface ActiveUnit extends IUnit {
