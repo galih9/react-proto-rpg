@@ -14,15 +14,32 @@ export const getValidTargets = (
   // Identify opponents based on source type
   const isPlayer = source.type === "PLAYER";
   const opponents = livingUnits.filter((u) => u.type === (isPlayer ? "ENEMY" : "PLAYER"));
+  const allies = livingUnits.filter((u) => u.type === source.type);
 
   switch (skill.targetType) {
     case "SELF":
       targets.push(source.id);
       break;
 
+    case "ANY_ALLY":
+      // Target any ally including self
+      allies.forEach((u) => targets.push(u.id));
+      break;
+
+    case "ALL_ALLY":
+      // Target all allies including self
+      allies.forEach((u) => targets.push(u.id));
+      break;
+
+    case "ANY_ENEMY":
     case "ANY":
-    case "MULTIPLE":
-      // Target all opponents regardless of position
+    case "MULTIPLE": // Keeping legacy types mapped to enemies for now if they act as ANY
+      // Target any single opponent
+      opponents.forEach((u) => targets.push(u.id));
+      break;
+
+    case "ALL_ENEMY":
+      // Target all opponents
       opponents.forEach((u) => targets.push(u.id));
       break;
 
