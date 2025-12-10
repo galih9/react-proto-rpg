@@ -17,9 +17,11 @@ export type Element =
 export type ElementAffinity = "WEAK" | "RESIST" | "NULL" | "DRAIN" | "DEFLECT" | "NORMAL"
 // skill target types
 export type ISkillTarget =
-  | "ANY"
+  | "ANY_ENEMY"
+  | "ANY_ALLY"
+  | "ALL_ALLY"
+  | "ALL_ENEMY"
   | "SELF"
-  | "MULTIPLE"
   | "PROJECTILE_SINGLE"
   | "PROJECTILE_MULTI"
   | "THROWABLE_SINGLE"
