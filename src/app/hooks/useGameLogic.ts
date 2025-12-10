@@ -67,7 +67,7 @@ export const useGameLogic = () => {
     );
   };
 
-  const processTicksAndAdvance = (callback: () => void) => {
+  const processTicksAndAdvance = (callback: () => void, activeUnitId?: string | null) => {
     const currentUnits = unitsRef.current;
     const logsToAdd: string[] = [];
     const eventsToRemove: { unitId: string; eventId: string }[] = [];
@@ -79,28 +79,36 @@ export const useGameLogic = () => {
       const newStatusEffects: StatusEffect[] = [];
       const newFloatingEvents = [...unit.floatingTextEvents];
 
-      unit.statusEffects.forEach(effect => {
-        if (effect.type === 'POISON') {
-          const damage = typeof effect.value === 'number' ? effect.value : Math.floor(unit.maxHp * 0.05);
-          newHp = Math.max(0, newHp - damage);
-          logsToAdd.push(`${unit.displayName} takes ${damage} poison damage.`);
+      // Only process ticks for the active unit
+      const shouldTick = activeUnitId && unit.id === activeUnitId;
 
-          const eventId = `poison-${Date.now()}-${Math.random()}`;
-          newFloatingEvents.push({
-            id: eventId,
-            text: `-${damage}`,
-            type: 'DAMAGE'
-          });
-          eventsToRemove.push({ unitId: unit.id, eventId });
-        }
+      if (shouldTick) {
+        unit.statusEffects.forEach(effect => {
+          if (effect.type === 'POISON') {
+            const damage = typeof effect.value === 'number' ? effect.value : Math.floor(unit.maxHp * 0.05);
+            newHp = Math.max(0, newHp - damage);
+            logsToAdd.push(`${unit.displayName} takes ${damage} poison damage.`);
 
-        const newDuration = effect.duration - 1;
-        if (newDuration > 0) {
-          newStatusEffects.push({ ...effect, duration: newDuration });
-        } else {
-          logsToAdd.push(`${effect.name} on ${unit.displayName} expired.`);
-        }
-      });
+            const eventId = `poison-${Date.now()}-${Math.random()}`;
+            newFloatingEvents.push({
+              id: eventId,
+              text: `-${damage}`,
+              type: 'DAMAGE'
+            });
+            eventsToRemove.push({ unitId: unit.id, eventId });
+          }
+
+          const newDuration = effect.duration - 1;
+          if (newDuration > 0) {
+            newStatusEffects.push({ ...effect, duration: newDuration });
+          } else {
+            logsToAdd.push(`${effect.name} on ${unit.displayName} expired.`);
+          }
+        });
+      } else {
+         // Keep existing effects if not ticking
+         unit.statusEffects.forEach(effect => newStatusEffects.push(effect));
+      }
 
       return {
         ...unit,
@@ -282,7 +290,7 @@ export const useGameLogic = () => {
           }, 1000);
         }, 800);
       }, 500);
-    });
+    }, null); // No active unit in Passive Phase ticks
   };
 
   const executeHeal = (targetId: string, skill: ISkillType) => {
@@ -604,7 +612,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
         }
-      });
+      }, attacker.id);
     }, 500);
   };
 
@@ -708,7 +716,7 @@ export const useGameLogic = () => {
             );
             setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
           }
-        });
+        }, attacker.id);
       }, 500);
       return;
     }
@@ -758,7 +766,7 @@ export const useGameLogic = () => {
           } else {
             setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
           }
-        });
+        }, attacker.id);
       }, anyWeakness ? 1000 : 200);
 
     }, 800);
@@ -789,7 +797,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
         }
-      });
+      }, currentActor.id);
     }, 200);
   };
 
@@ -831,7 +839,7 @@ export const useGameLogic = () => {
             } else {
               setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
             }
-          });
+          }, currentActor.id);
         }, 300);
       }
     }
@@ -870,7 +878,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
         }
-      });
+      }, currentActor.id);
     }, 200);
   };
 
@@ -994,7 +1002,7 @@ export const useGameLogic = () => {
         setTimeout(() => {
           processTicksAndAdvance(() => {
             performNextEnemyAction();
-          });
+          }, attacker.id);
         }, 1200);
       }, 1000);
     };
