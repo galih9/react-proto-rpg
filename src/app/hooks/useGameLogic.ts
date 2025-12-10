@@ -252,7 +252,10 @@ export const useGameLogic = () => {
             setUnits((prev) =>
               prev.map((u) => {
                 if (u.type === healingType && !u.isDead && u.hp < u.maxHp && !isDeployable(u)) { // Don't heal walls automatically? Or yes? Assuming no auto-heal for walls/sentries
-                  const healAmount = 5;
+                  // Intelligence Healing
+                  // Formula: Heal = MaxHP * (Int / 100). Minimum 1.
+                  const intFactor = u.inteligence ? u.inteligence / 100 : 0.05;
+                  const healAmount = Math.max(1, Math.floor(u.maxHp * intFactor));
                   const newHp = Math.min(u.maxHp, u.hp + healAmount);
                   const actualHeal = newHp - u.hp;
 
@@ -418,7 +421,59 @@ export const useGameLogic = () => {
 
     // Only set attacking ID if not MULTIPLE to avoid rapid flickering or state confusion in loop,
     // or we accept it might flicker. For now let's set it.
+    // Set attacking ID immediately to ensure animation starts regardless of Hit/Miss
     setAttackingUnitId(attacker.id);
+
+    // HIT/MISS CALCULATION (AGILITY)
+    // Formula: HitChance = 100 + (Attacker.Agility - Target.Agility)
+    // Deployables (Wall, Sentry) always get hit (Agility check skipped or forced 100%)
+    // But we already set Wall Agility to 0, so it works naturally if Attacker Agility >= 0.
+    // However, explicit check is safer if we want 100% guarantee.
+    // Let's rely on formula since Wall has 0 Agility now.
+    // Attacker Agility 10 vs Wall 0 => 100 + 10 = 110%.
+    // Attacker Agility 4 vs Tuyul 15 => 100 + 4 - 15 = 89%.
+
+    const attackerAgility = attacker.agility || 0;
+    const targetAgility = target.agility || 0;
+    let hitChance = 100 + (attackerAgility - targetAgility);
+
+    // Force 100% hit against deployables
+    if (isDeployable(target)) {
+        hitChance = 100;
+    }
+
+    const hitRoll = Math.random() * 100;
+    const isMiss = hitRoll > hitChance;
+
+    if (isMiss) {
+        // Visual 'MISS' and Log, but DO NOT execute damage logic.
+        // We still need to clear attackingUnitId eventually.
+        setTimeout(() => {
+          addLog(`${attacker.displayName} missed ${target.displayName}!`);
+
+          const missEventId = `miss-${Date.now()}-${Math.random()}`;
+          setUnits((prev) =>
+              prev.map((u) => {
+                if (u.id === target.id) {
+                  return {
+                    ...u,
+                    floatingTextEvents: [...u.floatingTextEvents, { id: missEventId, text: "MISS", type: 'NULL' }] // Using NULL type for gray color
+                  };
+                }
+                return u;
+              })
+            );
+
+            setTimeout(() => {
+              removeFloatingEvent(target.id, missEventId);
+            }, 1000);
+
+            // Clear animation
+            setAttackingUnitId(null);
+        }, 600);
+
+        return false; // Action ends here (No damage, no status)
+    }
 
     const affinity = target.status[skill.element];
     const isWeakness = affinity === "WEAK";
@@ -480,6 +535,11 @@ export const useGameLogic = () => {
       });
       damage = Math.floor(damage * defMultiplier);
 
+      // STRENGTH DAMAGE REDUCTION
+      // Formula: Damage * (100 / (100 + Strength))
+      const targetStrength = target.strength || 0;
+      const strReduction = 100 / (100 + targetStrength);
+      damage = Math.floor(damage * strReduction);
 
       // 2. Element Multipliers
       if (isWeakness) damage = Math.floor(damage * 1.5);
