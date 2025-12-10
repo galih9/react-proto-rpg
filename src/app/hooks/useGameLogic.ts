@@ -67,7 +67,7 @@ export const useGameLogic = () => {
     );
   };
 
-  const processTicksAndAdvance = (callback: () => void) => {
+  const processTicksAndAdvance = (callback: () => void, activeUnitId?: string | null) => {
     const currentUnits = unitsRef.current;
     const logsToAdd: string[] = [];
     const eventsToRemove: { unitId: string; eventId: string }[] = [];
@@ -79,28 +79,36 @@ export const useGameLogic = () => {
       const newStatusEffects: StatusEffect[] = [];
       const newFloatingEvents = [...unit.floatingTextEvents];
 
-      unit.statusEffects.forEach(effect => {
-        if (effect.type === 'POISON') {
-          const damage = Math.floor(unit.maxHp * 0.05);
-          newHp = Math.max(0, newHp - damage);
-          logsToAdd.push(`${unit.displayName} takes ${damage} poison damage.`);
+      // Only process ticks for the active unit
+      const shouldTick = activeUnitId && unit.id === activeUnitId;
 
-          const eventId = `poison-${Date.now()}-${Math.random()}`;
-          newFloatingEvents.push({
-            id: eventId,
-            text: `-${damage}`,
-            type: 'DAMAGE'
-          });
-          eventsToRemove.push({ unitId: unit.id, eventId });
-        }
+      if (shouldTick) {
+        unit.statusEffects.forEach(effect => {
+          if (effect.type === 'POISON') {
+            const damage = typeof effect.value === 'number' ? effect.value : Math.floor(unit.maxHp * 0.05);
+            newHp = Math.max(0, newHp - damage);
+            logsToAdd.push(`${unit.displayName} takes ${damage} poison damage.`);
 
-        const newDuration = effect.duration - 1;
-        if (newDuration > 0) {
-          newStatusEffects.push({ ...effect, duration: newDuration });
-        } else {
-          logsToAdd.push(`Poison on ${unit.displayName} expired.`);
-        }
-      });
+            const eventId = `poison-${Date.now()}-${Math.random()}`;
+            newFloatingEvents.push({
+              id: eventId,
+              text: `-${damage}`,
+              type: 'DAMAGE'
+            });
+            eventsToRemove.push({ unitId: unit.id, eventId });
+          }
+
+          const newDuration = effect.duration - 1;
+          if (newDuration > 0) {
+            newStatusEffects.push({ ...effect, duration: newDuration });
+          } else {
+            logsToAdd.push(`${effect.name} on ${unit.displayName} expired.`);
+          }
+        });
+      } else {
+         // Keep existing effects if not ticking
+         unit.statusEffects.forEach(effect => newStatusEffects.push(effect));
+      }
 
       return {
         ...unit,
@@ -170,7 +178,7 @@ export const useGameLogic = () => {
         // Sentry passive logic: "Locked in" -> Projectile Single
         // getValidTargets handles PROJECTILE_SINGLE correctly
         const targetId = validTargets[0];
-        executeAttack(sentry.id, targetId, skill);
+        executeAction(sentry.id, targetId, skill);
       }
     });
   };
@@ -232,7 +240,7 @@ export const useGameLogic = () => {
         setTimeout(() => {
           executePassiveSkills(secondActor);
 
-          // Perform Heals
+          // Perform Heals (Passive Regen)
           const healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY"; // Heal the side that just finished?
           // Original logic: healed the side that is *about to start*?
           // Wait, original: `healingType = nextPhase === "ENEMY_TURN" ? "PLAYER" : "ENEMY"`
@@ -282,7 +290,7 @@ export const useGameLogic = () => {
           }, 1000);
         }, 800);
       }, 500);
-    });
+    }, null); // No active unit in Passive Phase ticks
   };
 
   const executeHeal = (targetId: string, skill: ISkillType) => {
@@ -324,13 +332,68 @@ export const useGameLogic = () => {
     addLog(`${target.displayName} heals for ${healAmount} HP.`);
   };
 
-  const executeAttack = (
+  const executeSupport = (attackerId: string, targetId: string, skill: ISkillType) => {
+    const currentUnits = unitsRef.current;
+    const attacker = currentUnits.find((u) => u.id === attackerId);
+    const target = currentUnits.find((u) => u.id === targetId);
+
+    if (!attacker || !target) return;
+
+    // Map Skills to Status Effects
+    let effectToAdd: StatusEffect | null = null;
+    let effectType: StatusEffect['type'] | null = null;
+    let effectName = "";
+    let effectValue = skill.baseNumber; // Use baseNumber as the value (e.g., 30 for 30%)
+
+    // IDs 401-406 are specific support skills from Raka
+    if (skill.id === 403) { // Increase Attack
+      effectType = "ATTACK_UP";
+      effectName = "Atk Up";
+    } else if (skill.id === 404 || skill.id === 406) { // Weakened Weapon / Mass
+      effectType = "ATTACK_DOWN";
+      effectName = "Atk Down";
+    } else if (skill.id === 405) { // Weakened Armor
+      effectType = "DEFENSE_DOWN";
+      effectName = "Def Down";
+    } else if (skill.element === 'BLACK_MAGIC') {
+       // Legacy Poison (from executeAttack logic)
+       // But this function is support only? Let's handle it if it falls through.
+    }
+
+    if (effectType) {
+      effectToAdd = {
+        id: `status-${Date.now()}-${Math.random()}`,
+        type: effectType,
+        name: effectName,
+        value: effectValue,
+        duration: 3, // Default 3 turns
+        sourceId: attacker.id
+      };
+
+      setUnits(prev => prev.map(u => {
+        if (u.id === target.id) {
+          return {
+            ...u,
+            statusEffects: [...u.statusEffects, effectToAdd!]
+          };
+        }
+        return u;
+      }));
+
+      addLog(`${attacker.displayName} applies ${effectName} on ${target.displayName}.`);
+    } else {
+      // Fallback or just a visual effect
+      addLog(`${attacker.displayName} uses ${skill.name} on ${target.displayName}.`);
+    }
+  };
+
+  const executeAction = (
     attackerId: string,
     targetId: string,
     skill: ISkillType
   ): boolean => {
     // Returns true if weakness was hit, false otherwise.
-    // Does NOT return new points anymore.
+    // Handles Attack, Heal, and Support Logic.
 
     const currentUnits = unitsRef.current;
     const attacker = currentUnits.find((u) => u.id === attackerId);
@@ -338,9 +401,23 @@ export const useGameLogic = () => {
 
     if (!attacker || !target) return false;
 
+    // Determine Action Type
+    // Heals (401, 402 or explicit 'HEAL' if we had a type)
+    if (skill.id === 401 || skill.id === 402) {
+      executeHeal(targetId, skill);
+      return false; // No weakness on heal
+    }
+
+    // Support / Buffs (403, 404, 405, 406)
+    if (skill.id === 403 || skill.id === 404 || skill.id === 405 || skill.id === 406) {
+      executeSupport(attackerId, targetId, skill);
+      return false; // No weakness on support (unless we define it, but normally no)
+    }
+
+    // --- OFFENSIVE ACTION (Damage) ---
+
     // Only set attacking ID if not MULTIPLE to avoid rapid flickering or state confusion in loop,
     // or we accept it might flicker. For now let's set it.
-    // If it's a loop, this might just show the last one or flicker.
     setAttackingUnitId(attacker.id);
 
     const affinity = target.status[skill.element];
@@ -385,7 +462,26 @@ export const useGameLogic = () => {
     setTimeout(() => {
       let damage = skill.baseNumber || 10;
 
-      // Multipliers
+      // 1. Apply Status Multipliers
+      // Attacker Buffs/Debuffs
+      let atkMultiplier = 1.0;
+      attacker.statusEffects.forEach(eff => {
+        if (eff.type === 'ATTACK_UP') atkMultiplier += (eff.value / 100);
+        if (eff.type === 'ATTACK_DOWN') atkMultiplier -= (eff.value / 100);
+      });
+      // Clamp multiplier to reasonable min (e.g., 10%)
+      atkMultiplier = Math.max(0.1, atkMultiplier);
+      damage = Math.floor(damage * atkMultiplier);
+
+      // Target Debuffs (Defense Down increases damage)
+      let defMultiplier = 1.0;
+      target.statusEffects.forEach(eff => {
+        if (eff.type === 'DEFENSE_DOWN') defMultiplier += (eff.value / 100); // e.g., 40% Def Down = 1.4x Damage
+      });
+      damage = Math.floor(damage * defMultiplier);
+
+
+      // 2. Element Multipliers
       if (isWeakness) damage = Math.floor(damage * 1.5);
       if (isResist) damage = Math.floor(damage * 0.5);
       if (isNull) damage = 0;
@@ -396,6 +492,8 @@ export const useGameLogic = () => {
         statusEffectToAdd = {
           id: `poison-${Date.now()}-${Math.random()}`,
           type: 'POISON',
+          name: 'Poison',
+          value: 30, // Fixed damage or logic
           duration: 3,
           sourceId: attacker.id
         };
@@ -514,7 +612,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
         }
-      });
+      }, attacker.id);
     }, 500);
   };
 
@@ -588,7 +686,7 @@ export const useGameLogic = () => {
 
     // Determine targets to execute on
     let targetsToHit: string[] = [];
-    if (skill.targetType === "ALL_ENEMY") {
+    if (skill.targetType === "ALL_ENEMY" || skill.targetType === "ALL_ALLY") {
       targetsToHit = validTargets; // Hit all valid targets
     } else {
       targetsToHit = [unitId]; // Hit the specific clicked target
@@ -618,7 +716,7 @@ export const useGameLogic = () => {
             );
             setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
           }
-        });
+        }, attacker.id);
       }, 500);
       return;
     }
@@ -628,11 +726,14 @@ export const useGameLogic = () => {
 
     if (skill.targetType === "SELF") {
       // HEAL / BUFF logic
-      executeHeal(unitId, skill);
+      // Note: If self target skill is an attack (e.g. self-destruct), executeAction handles it.
+      // But typically SELF is support.
+      // executeAction checks IDs first, so it's safe.
+      executeAction(attacker.id, unitId, skill);
     } else {
-      // ATTACK logic
+      // ATTACK / SUPPORT logic
       targetsToHit.forEach((tid) => {
-        const w = executeAttack(attacker.id, tid, skill);
+        const w = executeAction(attacker.id, tid, skill);
         if (w) anyWeakness = true;
       });
     }
@@ -665,7 +766,7 @@ export const useGameLogic = () => {
           } else {
             setCurrentActorIndex((prev) => (prev + 1) % activePlayers.length);
           }
-        });
+        }, attacker.id);
       }, anyWeakness ? 1000 : 200);
 
     }, 800);
@@ -696,7 +797,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
         }
-      });
+      }, currentActor.id);
     }, 200);
   };
 
@@ -738,7 +839,7 @@ export const useGameLogic = () => {
             } else {
               setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
             }
-          });
+          }, currentActor.id);
         }, 300);
       }
     }
@@ -777,7 +878,7 @@ export const useGameLogic = () => {
         } else {
           setCurrentActorIndex(prev => (prev + 1) % activePlayers.length);
         }
-      });
+      }, currentActor.id);
     }, 200);
   };
 
@@ -883,11 +984,11 @@ export const useGameLogic = () => {
               addLog(`${attacker.displayName} starts channeling ${chosenAction.skill.name}...`);
             } else {
               // Release
-              executeAttack(attacker.id, target.id, chosenAction.skill);
+              executeAction(attacker.id, target.id, chosenAction.skill);
               setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isChanneling: false, channelingSkillId: null } : u));
             }
           } else {
-            executeAttack(attacker.id, target.id, chosenAction.skill);
+            executeAction(attacker.id, target.id, chosenAction.skill);
           }
         } else if (chosenAction.type === 'GUARD') {
           setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, isGuarding: true } : u));
@@ -901,7 +1002,7 @@ export const useGameLogic = () => {
         setTimeout(() => {
           processTicksAndAdvance(() => {
             performNextEnemyAction();
-          });
+          }, attacker.id);
         }, 1200);
       }, 1000);
     };
@@ -945,7 +1046,7 @@ export const useGameLogic = () => {
           addLog(`${currentActor.displayName} releases ${skill.name}!`);
 
           // Execute Attack (Free)
-          executeAttack(currentActor.id, targetId!, skill);
+          executeAction(currentActor.id, targetId!, skill);
 
           // Clear Channeling State
           setUnits(prev => prev.map(u => u.id === currentActor.id ? { ...u, isChanneling: false, channelingSkillId: null, channelingTargetId: null } : u));

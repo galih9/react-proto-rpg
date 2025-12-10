@@ -71,7 +71,7 @@ const createRaka = (): ActiveUnit => {
       pointCost: 2,
     },
     {
-      id: 404,
+      id: 406,
       name: "Weakened Mass Weapon",
       element: "SPECIAL",
       description: "Decrease attack all enemy",
@@ -187,8 +187,8 @@ const createRaka = (): ActiveUnit => {
     baseHp: 100,
     baseLevel: 1,
     type: "PLAYER",
-    x: null,
-    y: null,
+    x: 0,
+    y: 0,
     hp: 100,
     maxHp: 100,
     element: "FIRE", // Main element

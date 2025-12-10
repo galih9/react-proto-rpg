@@ -145,11 +145,27 @@ export const DraggableUnit: React.FC<Props> = ({
             {unit.displayName}
           </div>
           <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
-          {unit.isChanneling && (
-             <div className="text-[10px] font-bold text-amber-500 text-center animate-pulse">
-               Channeling...
-             </div>
-          )}
+
+          {/* Status Effects List */}
+          <div className="flex flex-col gap-0.5">
+            {unit.isChanneling && (
+                <div className="text-[10px] font-bold text-amber-500 text-center animate-pulse leading-none">
+                Channeling...
+                </div>
+            )}
+            {unit.statusEffects.map((effect) => {
+              let colorClass = "text-slate-600";
+              if (effect.type === 'ATTACK_UP') colorClass = "text-blue-600";
+              if (effect.type === 'ATTACK_DOWN' || effect.type === 'DEFENSE_DOWN') colorClass = "text-red-600";
+              if (effect.type === 'POISON') colorClass = "text-purple-600";
+
+              return (
+                <div key={effect.id} className={`text-[9px] font-bold text-center leading-none ${colorClass}`}>
+                  {effect.name} ({effect.duration})
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

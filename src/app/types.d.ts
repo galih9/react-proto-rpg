@@ -42,7 +42,9 @@ export type ISkillTarget =
 
 export interface StatusEffect {
   id: string; // Unique ID for the effect instance
-  type: "POISON";
+  type: "POISON" | "ATTACK_UP" | "ATTACK_DOWN" | "DEFENSE_DOWN";
+  name: string; // Display name (e.g., "Atk Up", "Poison")
+  value: number; // Percentage value (e.g., 30 for 30%) or damage amount for poison
   duration: number; // Number of ticks remaining
   sourceId: string; // Who applied it
 }
