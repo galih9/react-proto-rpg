@@ -9,6 +9,7 @@ const UNITS: IUnit[] = [
     shortDescription:
       "A Wall that can block projectile attack",
     baseHp: 100,
+    baseSp: 0,
     baseLevel: 1,
     agility: 0,
     strength: 100,
@@ -31,6 +32,7 @@ const UNITS: IUnit[] = [
     shortDescription:
       "A sentry unit that will lock an enemy target",
     baseHp: 20,
+    baseSp: 0,
     baseLevel: 1,
     skills: [],
     agility: 0,
@@ -45,6 +47,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 0,
         baseNumber: 10,
+        spCost: 0
       }
     ],
     status: {
@@ -68,6 +71,7 @@ const UNITS: IUnit[] = [
     shortDescription:
       "An agile spirit, capable to steal and disarming the enemies",
     baseHp: 70,
+    baseSp: 50,
     baseLevel: 1,
     skills: [
       {
@@ -78,6 +82,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
         baseNumber: 25,
+        spCost: 15,
       },
       {
         id: 1,
@@ -87,6 +92,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
         baseNumber: 30,
+        spCost: 20,
       },
       {
         id: 2,
@@ -97,6 +103,7 @@ const UNITS: IUnit[] = [
         targetType: "ANY_ENEMY",
         pointCost: 1,
         baseNumber: 0,
+        spCost: 10,
       },
     ],
     status: {
@@ -115,6 +122,7 @@ const UNITS: IUnit[] = [
     shortDescription:
       "A ferocious spirit, and a decent tanker",
     baseHp: 120,
+    baseSp: 80,
     baseLevel: 1,
     agility: 8,
     strength: 10,
@@ -129,6 +137,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
         baseNumber: 20,
+        spCost: 15,
       },
       {
         id: 1,
@@ -138,6 +147,7 @@ const UNITS: IUnit[] = [
         targetType: "SELF",
         pointCost: 3,
         baseNumber: 0,
+        spCost: 15,
       },
       {
         id: 2,
@@ -148,6 +158,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
         baseNumber: 30,
+        spCost: 15,
       },
     ],
     status: {
@@ -166,6 +177,7 @@ const UNITS: IUnit[] = [
     shortDescription:
       "A beefy unstopable tank",
     baseHp: 300,
+    baseSp: 30,
     baseLevel: 1,
     agility: 4,
     strength: 20,
@@ -180,6 +192,7 @@ const UNITS: IUnit[] = [
         targetType: "SELF",
         pointCost: 0,
         baseNumber: 0,
+        spCost: 15,
       },
       {
         id: 1,
@@ -190,6 +203,7 @@ const UNITS: IUnit[] = [
         pointCost: 2,
         baseNumber: 100,
         isChannelingSkill: true,
+        spCost: 15,
       },
       {
         id: 2,
@@ -200,6 +214,7 @@ const UNITS: IUnit[] = [
         targetType: "PROJECTILE_SINGLE",
         pointCost: 2,
         baseNumber: 30,
+        spCost: 10
       },
     ],
     status: {

@@ -22,6 +22,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 20,
       targetType: "ANY_ENEMY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 101,
@@ -31,6 +32,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 30,
       targetType: "PROJECTILE_SINGLE",
       pointCost: 2,
+      spCost: 15
     },
     // prototype
     // support skill
@@ -42,6 +44,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 100,
       targetType: "ANY_ALLY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 402,
@@ -51,6 +54,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 100,
       targetType: "ALL_ALLY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 403,
@@ -60,6 +64,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 30,
       targetType: "ANY_ALLY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 404,
@@ -69,6 +74,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 30,
       targetType: "ANY_ENEMY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 406,
@@ -78,6 +84,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 30,
       targetType: "ALL_ENEMY",
       pointCost: 2,
+      spCost: 15
     },
     {
       id: 405,
@@ -87,6 +94,7 @@ const createRaka = (): ActiveUnit => {
       baseNumber: 40,
       targetType: "ANY_ENEMY",
       pointCost: 2,
+      spCost: 15
     },
     // sentries
     // {
@@ -99,6 +107,7 @@ const createRaka = (): ActiveUnit => {
     //   pointCost: 2,
     //   baseNumber: 0,
     //   isChannelingSkill: false,
+    // spCost: 15
     // },
     // {
     //   id: 602,
@@ -110,6 +119,7 @@ const createRaka = (): ActiveUnit => {
     //   pointCost: 2,
     //   baseNumber: 0,
     //   isChannelingSkill: false,
+    // spCost: 15
     // },
     // {
     //   id: 1,
@@ -203,7 +213,8 @@ const createRaka = (): ActiveUnit => {
     agility: 10,
     strength: 10,
     inteligence: 10,
-    moneyCarried: 0
+    moneyCarried: 0,
+    baseSp: 100
   };
 };
 

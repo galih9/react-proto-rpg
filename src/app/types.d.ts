@@ -62,6 +62,7 @@ export interface ISkillType {
   description: string;
   targetType: ISkillTarget;
   pointCost: number;
+  spCost: number;
   baseNumber: number;
   isChannelingSkill?: boolean;
 }
@@ -81,6 +82,7 @@ export interface IUnit {
   lore: string;
   shortDescription: string;
   baseHp: number;
+  baseSp: number;
   baseLevel: number;
   skills: ISkillType[];
   passiveSkill?: ISkillType[];
