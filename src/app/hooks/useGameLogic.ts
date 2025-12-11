@@ -5,9 +5,28 @@ import { UNITS as DB_UNITS } from "../data/units";
 import { getValidTargets } from "../utils/targeting";
 
 export const useGameLogic = () => {
-  const [phase, setPhase] = useState<Phase>("START");
+  const [phase, setPhase] = useState<Phase>("LOADING");
   const [units, setUnits] = useState<ActiveUnit[]>(INITIAL_UNITS);
   const [turnPoints, setTurnPoints] = useState(0);
+
+  // Initial Loading -> Menu
+  useEffect(() => {
+    if (phase === "LOADING") {
+      const timer = setTimeout(() => {
+        setPhase("MENU");
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else if (phase === "PRE_GAME_LOAD") {
+       const timer = setTimeout(() => {
+          initializeGame();
+       }, 3000);
+       return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
+  const startGameFlow = () => {
+      setPhase("PRE_GAME_LOAD");
+  };
 
   // Ref to always access latest units in async operations
   const unitsRef = useRef<ActiveUnit[]>(INITIAL_UNITS);
@@ -1174,6 +1193,7 @@ export const useGameLogic = () => {
     logs,
     interactionState,
     moveUnit,
+    startGameFlow,
     initializeGame,
     startBattle,
     handleGuard,
