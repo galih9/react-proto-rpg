@@ -10,7 +10,7 @@ const UNITS: IUnit[] = [
       "A Wall that can block projectile attack",
     baseHp: 100,
     baseLevel: 1,
-    agility: 100,
+    agility: 0,
     strength: 100,
     inteligence: 100,
     skills: [],

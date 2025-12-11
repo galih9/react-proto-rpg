@@ -63,9 +63,25 @@ export function Encyclopedia({ onClose }: EncyclopediaProps) {
                         <h1 className="text-4xl font-bold text-white mb-2">{selectedUnit.name}</h1>
                         <p className="text-slate-400 italic text-lg">{selectedUnit.lore}</p>
                     </div>
-                    <div className="bg-slate-800 px-4 py-2 rounded text-center min-w-[100px]">
-                        <div className="text-xs text-slate-500 uppercase font-bold">Base HP</div>
-                        <div className="text-2xl font-bold text-green-400">{selectedUnit.baseHp}</div>
+                    <div className="flex flex-col gap-2">
+                      <div className="bg-slate-800 px-4 py-2 rounded text-center min-w-[100px]">
+                          <div className="text-xs text-slate-500 uppercase font-bold">Base HP</div>
+                          <div className="text-2xl font-bold text-green-400">{selectedUnit.baseHp}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="bg-slate-800 px-2 py-1 rounded text-center min-w-[60px]">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold">STR</div>
+                            <div className="text-lg font-bold text-red-400">{selectedUnit.strength || '-'}</div>
+                        </div>
+                        <div className="bg-slate-800 px-2 py-1 rounded text-center min-w-[60px]">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold">AGI</div>
+                            <div className="text-lg font-bold text-blue-400">{selectedUnit.agility || 0}</div>
+                        </div>
+                        <div className="bg-slate-800 px-2 py-1 rounded text-center min-w-[60px]">
+                            <div className="text-[10px] text-slate-500 uppercase font-bold">INT</div>
+                            <div className="text-lg font-bold text-purple-400">{selectedUnit.inteligence || '-'}</div>
+                        </div>
+                      </div>
                     </div>
                 </div>
 
