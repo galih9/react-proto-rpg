@@ -25,7 +25,8 @@ export const FloatingActionMenu: React.FC<Props> = ({
   onSelectSkill,
 }) => {
   // Common button style
-  const btnClass = "block w-full text-left bg-white border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 rounded mb-1 shadow-sm font-sans disabled:opacity-50 disabled:cursor-not-allowed";
+  // Changed: Removed font-sans (to use Excalifont), added text-black
+  const btnClass = "block w-full text-left bg-white border border-gray-300 px-3 py-1 text-sm text-black hover:bg-gray-100 rounded mb-1 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
 
   if (interactionState.mode === 'EXECUTING') {
     return null;
@@ -46,7 +47,8 @@ export const FloatingActionMenu: React.FC<Props> = ({
   if (interactionState.mode === 'SKILLS') {
     return (
       <div className="absolute top-0 -right-4 translate-x-full z-20 w-48 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
-        <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wide">Select Skill</div>
+        {/* Changed: text-gray-500 -> text-black for header */}
+        <div className="text-xs text-black mb-2 font-bold uppercase tracking-wide">Select Skill</div>
         {currentActor.skills.map((skill) => (
           <button
             key={skill.id}
@@ -56,13 +58,16 @@ export const FloatingActionMenu: React.FC<Props> = ({
             title={skill.description}
           >
             <div className="flex justify-between items-center">
-                <span>{skill.name}</span>
+                {/* Skill Name in Black */}
+                <span className="text-black font-bold">{skill.name}</span>
                 <div className="flex gap-1">
-                  <span className="text-xs bg-gray-200 px-1 rounded text-gray-700">{skill.pointCost}p</span>
-                  <span className="text-xs bg-blue-100 px-1 rounded text-blue-700">{skill.spCost}sp</span>
+                  {/* Costs in Darker Colors */}
+                  <span className="text-xs bg-gray-200 px-1 rounded text-gray-900 font-bold">{skill.pointCost}p</span>
+                  <span className="text-xs bg-blue-100 px-1 rounded text-blue-900 font-bold">{skill.spCost}sp</span>
                 </div>
             </div>
-            <div className="text-[10px] text-gray-500">{skill.element}</div>
+            {/* Element in Dark Gray */}
+            <div className="text-[10px] text-gray-800">{skill.element}</div>
           </button>
         ))}
       </div>
@@ -72,7 +77,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
   if (interactionState.mode === 'TARGETING') {
       return (
         <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-yellow-100/90 backdrop-blur p-2 rounded shadow-xl border border-yellow-300 text-center pointer-events-none">
-            <span className="text-xs font-bold text-yellow-800">Select Target</span>
+            <span className="text-xs font-bold text-yellow-900">Select Target</span>
         </div>
       );
   }
@@ -80,7 +85,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
   if (interactionState.mode === 'DEPLOYING') {
       return (
         <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-blue-100/90 backdrop-blur p-2 rounded shadow-xl border border-blue-300 text-center pointer-events-none">
-            <span className="text-xs font-bold text-blue-800">Select Tile</span>
+            <span className="text-xs font-bold text-blue-900">Select Tile</span>
         </div>
       );
   }
@@ -88,7 +93,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
   if (interactionState.mode === 'MOVING') {
       return (
         <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-green-100/90 backdrop-blur p-2 rounded shadow-xl border border-green-300 text-center pointer-events-none">
-            <span className="text-xs font-bold text-green-800">Select Tile</span>
+            <span className="text-xs font-bold text-green-900">Select Tile</span>
         </div>
       );
   }
