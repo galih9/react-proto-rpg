@@ -146,6 +146,16 @@ export const DraggableUnit: React.FC<Props> = ({
           </div>
           <HealthBar current={unit.hp} max={unit.maxHp} width="w-full" />
 
+          {/* SP Bar */}
+          {!isMicroUnit && (
+             <div className="h-1 bg-gray-300 rounded overflow-hidden border border-gray-400 w-full">
+                <div
+                   className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                   style={{ width: `${Math.max(0, Math.min(100, (unit.sp / unit.maxSp) * 100))}%` }}
+                />
+             </div>
+          )}
+
           {/* Status Effects List */}
           <div className="flex flex-col gap-0.5">
             {unit.isChanneling && (

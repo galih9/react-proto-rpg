@@ -31,6 +31,17 @@ export const useGameLogic = () => {
     warning: null,
   });
 
+  const REGULAR_ATTACK_SKILL: ISkillType = {
+    id: -1, // Special ID for regular attack
+    name: "Regular Attack",
+    element: "PHYSICAL",
+    description: "A basic physical attack.",
+    baseNumber: 10,
+    targetType: "PROJECTILE_SINGLE",
+    pointCost: 2,
+    spCost: 0
+  };
+
   // Target Selection & Animation States
   const [currentActorIndex, setCurrentActorIndex] = useState(0);
   const [attackingUnitId, setAttackingUnitId] = useState<string | null>(null);
@@ -651,7 +662,9 @@ export const useGameLogic = () => {
       isChanneling: false,
       channelingSkillId: null,
       channelingTargetId: null,
-      status: dbUnit.status
+      status: dbUnit.status,
+      sp: dbUnit.baseSp,
+      maxSp: dbUnit.baseSp
     };
 
     setUnits(prev => [...prev, newUnit]);
@@ -752,9 +765,16 @@ export const useGameLogic = () => {
       targetsToHit = [unitId]; // Hit the specific clicked target
     }
 
-    // Deduct cost
+    // Check SP Cost again (for safety, though UI disables it)
+    if (attacker.sp < skill.spCost) {
+      addLog("Not enough SP!");
+      return;
+    }
+
+    // Deduct cost (Points and SP)
     const cost = skill.pointCost;
     setTurnPoints(prev => prev - cost);
+    setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, sp: u.sp - skill.spCost } : u));
 
     // START CHANNELING (Phase 1 Execution)
     if (skill.isChannelingSkill && !attacker.isChanneling) {
@@ -864,6 +884,11 @@ export const useGameLogic = () => {
   const handleMoveInitiate = () => {
     if (turnPoints < 1) return;
     setInteractionState({ mode: "MOVING", selectedSkill: null, warning: null });
+  };
+
+  const handleRegularAttack = () => {
+    if (turnPoints < 2) return;
+    enterTargetingMode(REGULAR_ATTACK_SKILL);
   };
 
   const handleTileClick = (x: number, y: number) => {
@@ -1000,20 +1025,30 @@ export const useGameLogic = () => {
           validActions.push({ type: 'WAIT', cost: 1 });
         }
       } else {
-        // 1. Evaluate Attacks
+        // 1. Evaluate Attacks (Skills)
         if (availableSkills && availableSkills.length > 0) {
           availableSkills.forEach(skill => {
-            const affinity = target.status[skill.element];
-            const isWeakness = affinity === "WEAK";
-            const cost = isWeakness ? (skill.pointCost > 1 ? skill.pointCost - 1 : 1) : skill.pointCost;
+            if (attacker.sp >= skill.spCost) {
+              const affinity = target.status[skill.element];
+              const isWeakness = affinity === "WEAK";
+              const cost = isWeakness ? (skill.pointCost > 1 ? skill.pointCost - 1 : 1) : skill.pointCost;
 
-            if (currentPoints >= cost) {
-              validActions.push({ type: 'ATTACK', skill, cost });
+              if (currentPoints >= cost) {
+                validActions.push({ type: 'ATTACK', skill, cost });
+              }
             }
           });
         }
 
-        // 2. Evaluate Guard/Wait (Cost 1)
+        // 2. Evaluate Regular Attack (0 SP)
+        if (currentPoints >= REGULAR_ATTACK_SKILL.pointCost) {
+             const affinity = target.status[REGULAR_ATTACK_SKILL.element];
+             const isWeakness = affinity === "WEAK";
+             const cost = isWeakness ? (REGULAR_ATTACK_SKILL.pointCost > 1 ? REGULAR_ATTACK_SKILL.pointCost - 1 : 1) : REGULAR_ATTACK_SKILL.pointCost;
+             validActions.push({ type: 'ATTACK', skill: REGULAR_ATTACK_SKILL, cost });
+        }
+
+        // 3. Evaluate Guard/Wait (Cost 1)
         if (currentPoints >= 1) {
           validActions.push({ type: 'GUARD', cost: 1 });
           validActions.push({ type: 'WAIT', cost: 1 });
@@ -1036,6 +1071,9 @@ export const useGameLogic = () => {
         setTurnPoints(currentPoints);
 
         if (chosenAction.type === 'ATTACK') {
+           // Deduct SP
+           setUnits(prev => prev.map(u => u.id === attacker.id ? { ...u, sp: u.sp - chosenAction.skill.spCost } : u));
+
           // Handle Channeling Start/End
           if (chosenAction.skill.isChannelingSkill) {
             if (!attacker.isChanneling) {
@@ -1141,6 +1179,7 @@ export const useGameLogic = () => {
     handleGuard,
     handleWait,
     handleMoveInitiate,
+    handleRegularAttack,
     handleTileClick,
     openSkillsMenu,
     enterTargetingMode,

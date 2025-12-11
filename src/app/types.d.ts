@@ -100,6 +100,8 @@ export interface ActiveUnit extends IUnit {
   y: number | null;
   hp: number; // Current HP (vs baseHp in IUnit)
   maxHp: number;
+  sp: number;
+  maxSp: number;
   element: Element;
 
   statusEffects: StatusEffect[];
