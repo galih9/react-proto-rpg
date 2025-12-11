@@ -1,4 +1,7 @@
 export type Phase =
+  | "LOADING"
+  | "MENU"
+  | "PRE_GAME_LOAD"
   | "START"
   | "SETUP"
   | "PLAYER_TURN"
