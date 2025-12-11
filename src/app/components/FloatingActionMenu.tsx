@@ -8,6 +8,7 @@ interface Props {
   onGuard: () => void;
   onWait: () => void;
   onMove: () => void;
+  onRegularAttack: () => void;
   onOpenSkills: () => void;
   onSelectSkill: (skill: ISkillType) => void;
 }
@@ -19,6 +20,7 @@ export const FloatingActionMenu: React.FC<Props> = ({
   onGuard,
   onWait,
   onMove,
+  onRegularAttack,
   onOpenSkills,
   onSelectSkill,
 }) => {
@@ -32,7 +34,8 @@ export const FloatingActionMenu: React.FC<Props> = ({
   if (interactionState.mode === 'MENU') {
     return (
       <div className="absolute top-0 -right-4 translate-x-full z-20 w-32 bg-gray-50/90 backdrop-blur p-2 rounded shadow-xl border border-gray-300">
-        <button onClick={onOpenSkills} className={btnClass}>Attack</button>
+        <button onClick={onRegularAttack} disabled={turnPoints < 2} className={btnClass}>Attack (0sp)</button>
+        <button onClick={onOpenSkills} className={btnClass}>Skills</button>
         <button onClick={onGuard} className={btnClass}>Guard</button>
         <button onClick={onWait} className={btnClass}>Wait</button>
         <button onClick={onMove} disabled={turnPoints < 1} className={btnClass}>Move (1p)</button>
@@ -48,13 +51,16 @@ export const FloatingActionMenu: React.FC<Props> = ({
           <button
             key={skill.id}
             onClick={() => onSelectSkill(skill)}
-            disabled={turnPoints < skill.pointCost}
+            disabled={turnPoints < skill.pointCost || currentActor.sp < skill.spCost}
             className={btnClass}
             title={skill.description}
           >
             <div className="flex justify-between items-center">
                 <span>{skill.name}</span>
-                <span className="text-xs bg-gray-200 px-1 rounded text-gray-700">{skill.pointCost}p</span>
+                <div className="flex gap-1">
+                  <span className="text-xs bg-gray-200 px-1 rounded text-gray-700">{skill.pointCost}p</span>
+                  <span className="text-xs bg-blue-100 px-1 rounded text-blue-700">{skill.spCost}sp</span>
+                </div>
             </div>
             <div className="text-[10px] text-gray-500">{skill.element}</div>
           </button>

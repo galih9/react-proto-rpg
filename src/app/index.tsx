@@ -36,6 +36,7 @@ export default function App() {
     handleGuard,
     handleWait,
     handleMoveInitiate,
+    handleRegularAttack,
     handleTileClick,
     openSkillsMenu,
     enterTargetingMode,
@@ -162,6 +163,7 @@ export default function App() {
                             onGuard={handleGuard}
                             onWait={handleWait}
                             onMove={handleMoveInitiate}
+                            onRegularAttack={handleRegularAttack}
                             onOpenSkills={openSkillsMenu}
                             onSelectSkill={enterTargetingMode}
                           />

@@ -201,6 +201,8 @@ const createRaka = (): ActiveUnit => {
     y: 0,
     hp: 100,
     maxHp: 100,
+    sp: 100,
+    maxSp: 100,
     element: "FIRE", // Main element
     skills: skills,
     status: normalStatus,
@@ -241,6 +243,8 @@ const createActiveUnitFromDB = (
     y,
     hp: dbUnit.baseHp,
     maxHp: dbUnit.baseHp,
+    sp: dbUnit.baseSp,
+    maxSp: dbUnit.baseSp,
     element,
     statusEffects: [],
     isDead: false,
