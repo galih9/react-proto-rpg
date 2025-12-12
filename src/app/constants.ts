@@ -30,7 +30,7 @@ const createRaka = (): ActiveUnit => {
       element: "FIRE",
       description: "A ball of fire.",
       baseNumber: 30,
-      targetType: "PROJECTILE_SINGLE",
+      targetType: "ALL_ENEMY",
       pointCost: 2,
       spCost: 15
     },

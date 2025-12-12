@@ -17,7 +17,13 @@ export type Element =
   | "PHYSICAL"
   | "BLACK_MAGIC"
   | "SPECIAL";
-export type ElementAffinity = "WEAK" | "RESIST" | "NULL" | "DRAIN" | "DEFLECT" | "NORMAL"
+export type ElementAffinity =
+  | "WEAK"
+  | "RESIST"
+  | "NULL"
+  | "DRAIN"
+  | "DEFLECT"
+  | "NORMAL";
 // skill target types
 export type ISkillTarget =
   | "ANY_ENEMY"
@@ -89,7 +95,7 @@ export interface IUnit {
   baseLevel: number;
   skills: ISkillType[];
   passiveSkill?: ISkillType[];
-  status: Record<Element, ElementAffinity>
+  status: Record<Element, ElementAffinity>;
   moneyCarried?: number;
   strength: number;
   agility: number;
@@ -143,4 +149,36 @@ export interface InteractionState {
   warning?: string | null;
 }
 
-export type MoodType = "CONFIDENT" | "ANGRY" | "CONFUSED" | "PITY" | "DISRESPECT" | "SATISFY";
+export type MoodType =
+  | "CONFIDENT"
+  | "ANGRY"
+  | "CONFUSED"
+  | "PITY"
+  | "DISRESPECT"
+  | "SATISFY";
+
+export interface LevelCreature {
+  creatureId: string;
+  moneyCarried: number;
+  x: number;
+  y: number;
+}
+
+export interface LevelInformation {
+  units: LevelCreature[];
+  levelName: string;
+}
+export interface Item {
+  name: string;
+  description: string;
+  baseNumber: number;
+  price: number;
+  id: string;
+  effectType: "SUPPORT" | "ATTACK";
+  targetType?: ISkillTarget;
+}
+
+export interface ActiveItem {
+  itemId: string;
+  stock: number;
+}
