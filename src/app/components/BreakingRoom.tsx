@@ -1,5 +1,5 @@
 import React from "react";
-import type { ActiveUnit, InventoryItem, ActiveItem, Item } from "../types";
+import type { ActiveUnit, InventoryItem, ActiveItem } from "../types";
 import { ITEMS } from "../data/levels";
 
 interface BreakingRoomProps {

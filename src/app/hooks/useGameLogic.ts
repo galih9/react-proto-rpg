@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType, InventoryItem, ActiveItem, Item } from "../types";
+import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType, InventoryItem } from "../types";
 import { INITIAL_UNITS } from "../constants";
 import { UNITS as DB_UNITS } from "../data/units";
 import { LEVELS, ITEMS, SHOP_ITEMS } from "../data/levels";
