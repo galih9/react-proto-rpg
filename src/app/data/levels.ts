@@ -105,4 +105,5 @@ const SHOP_ITEMS: ActiveItem[] = [
     itemId: "7",
   },
 ];
-export { LEVELS };
+
+export { LEVELS, ITEMS, SHOP_ITEMS };

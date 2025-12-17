@@ -1,13 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType } from "../types";
+import type { Phase, ActiveUnit, LogEntry, InteractionState, StatusEffect, ISkillType, InventoryItem } from "../types";
 import { INITIAL_UNITS } from "../constants";
 import { UNITS as DB_UNITS } from "../data/units";
+import { LEVELS, ITEMS, SHOP_ITEMS } from "../data/levels";
 import { getValidTargets } from "../utils/targeting";
 
 export const useGameLogic = () => {
   const [phase, setPhase] = useState<Phase>("LOADING");
-  const [units, setUnits] = useState<ActiveUnit[]>(INITIAL_UNITS);
+  const [units, setUnits] = useState<ActiveUnit[]>([]);
   const [turnPoints, setTurnPoints] = useState(0);
+
+  // New State for Meta Progression
+  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [money, setMoney] = useState(100);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [persistentPlayers, setPersistentPlayers] = useState<ActiveUnit[]>(INITIAL_UNITS);
 
   // Initial Loading -> Menu
   useEffect(() => {
@@ -29,7 +36,7 @@ export const useGameLogic = () => {
   };
 
   // Ref to always access latest units in async operations
-  const unitsRef = useRef<ActiveUnit[]>(INITIAL_UNITS);
+  const unitsRef = useRef<ActiveUnit[]>([]);
   // Ref for turn points to avoid stale closures in timeouts
   const turnPointsRef = useRef(0);
 
@@ -77,11 +84,141 @@ export const useGameLogic = () => {
     setUnits((prev) => prev.map((u) => (u.id === id ? { ...u, x, y } : u)));
   };
 
-  const initializeGame = () => {
-    setUnits(INITIAL_UNITS);
-    setPhase("SETUP");
-    addLog("Setup Phase: Drag blue units onto the left blue tiles.");
+  const createEnemy = (creatureId: string, x: number, y: number, moneyCarried: number): ActiveUnit => {
+      const dbUnit = DB_UNITS.find(u => u.id === creatureId);
+      if (!dbUnit) throw new Error(`Enemy ${creatureId} not found`);
+
+      return {
+          ...dbUnit,
+          id: `e-${Date.now()}-${Math.random()}`,
+          type: "ENEMY",
+          displayName: dbUnit.name,
+          x,
+          y,
+          hp: dbUnit.baseHp,
+          maxHp: dbUnit.baseHp,
+          sp: dbUnit.baseSp,
+          maxSp: dbUnit.baseSp,
+          element: "PHYSICAL", // Default, should ideally come from DB or explicit
+          statusEffects: [],
+          isDead: false,
+          floatingTextEvents: [],
+          isChanneling: false,
+          channelingSkillId: null,
+          channelingTargetId: null,
+          moneyCarried
+      };
   };
+
+  const loadLevel = (levelIndex: number, players: ActiveUnit[]) => {
+      const levelData = LEVELS[levelIndex];
+      const enemies = levelData.units.map(u => createEnemy(u.creatureId, u.x, u.y, u.moneyCarried));
+
+      // Reset Player Positions for Setup
+      const playersForSetup = players.map(p => ({ ...p, x: null, y: null }));
+
+      setUnits([...playersForSetup, ...enemies]);
+      setPhase("SETUP");
+      addLog(`Loaded ${levelData.levelName}. Drag units to blue tiles.`);
+  };
+
+  const initializeGame = () => {
+    setCurrentLevelIndex(0);
+    setMoney(100);
+    setInventory([]);
+    // Load fresh players from constants
+    const starters = INITIAL_UNITS.map(u => ({...u, hp: u.maxHp, sp: u.maxSp, isDead: false}));
+    setPersistentPlayers(starters);
+    loadLevel(0, starters);
+  };
+
+  // --- Breaking Room Logic ---
+  const continueToBreakingRoom = () => {
+      // Save current player state
+      const currentPlayers = unitsRef.current.filter(u => u.type === 'PLAYER');
+      setPersistentPlayers(currentPlayers);
+      setPhase("BREAKING_ROOM");
+  };
+
+  const startNextLevel = () => {
+      const nextIndex = currentLevelIndex + 1;
+      if (nextIndex >= LEVELS.length) {
+          setPhase("GAME_VICTORY");
+          return;
+      }
+      setCurrentLevelIndex(nextIndex);
+      loadLevel(nextIndex, persistentPlayers);
+  };
+
+  const buyItem = (itemId: string) => {
+      const shopItem = SHOP_ITEMS.find(i => i.itemId === itemId);
+      const itemDef = ITEMS.find(i => i.id === itemId);
+
+      if (!shopItem || !itemDef) return;
+      if (money < itemDef.price) {
+          // alert("Not enough money"); // Or toast
+          return;
+      }
+
+      setMoney(prev => prev - itemDef.price);
+      setInventory(prev => {
+          const existing = prev.find(i => i.itemId === itemId);
+          if (existing) {
+              return prev.map(i => i.itemId === itemId ? { ...i, quantity: i.quantity + 1 } : i);
+          } else {
+              return [...prev, { itemId, stock: 0, quantity: 1 }]; // stock irrelevant for inventory
+          }
+      });
+  };
+
+  const useItem = (itemId: string, targetUnitId: string) => {
+      const itemDef = ITEMS.find(i => i.id === itemId);
+      if (!itemDef) return;
+
+      setInventory(prev => {
+          const existing = prev.find(i => i.itemId === itemId);
+          if (!existing || existing.quantity <= 0) return prev;
+          if (existing.quantity === 1) return prev.filter(i => i.itemId !== itemId);
+          return prev.map(i => i.itemId === itemId ? { ...i, quantity: i.quantity - 1 } : i);
+      });
+
+      // Apply Effect
+      // For now, only handle Breaking Room usage (modifying persistentPlayers or units state)
+      // Since Breaking Room uses 'persistentPlayers' or 'units'?
+      // We are in BREAKING_ROOM phase, so 'units' might be stale?
+      // Wait, 'continueToBreakingRoom' updated 'persistentPlayers', but didn't clear 'units'.
+      // But 'BreakingRoom' UI should probably display 'persistentPlayers'.
+      // Let's ensure 'units' matches 'persistentPlayers' when entering breaking room or just use persistentPlayers state.
+      // Better: Update 'persistentPlayers' directly.
+
+      setPersistentPlayers(prev => prev.map(u => {
+          if (u.id === targetUnitId) {
+             let newHp = u.hp;
+             let newSp = u.sp;
+
+             if (itemDef.effectType === "SUPPORT") {
+                 // Rudimentary mapping based on ID or Name
+                 // IDs 1,2,3 are Heals
+                 // 5,6 are SP
+                 if (["1", "2", "3"].includes(itemId)) {
+                     newHp = Math.min(u.maxHp, u.hp + itemDef.baseNumber);
+                 } else if (itemId === "5") {
+                     newSp = Math.min(u.maxSp, u.sp + itemDef.baseNumber);
+                 } else if (itemId === "6") {
+                     newSp = u.maxSp;
+                 } else if (itemId === "4") {
+                     // Heal Miracle - All Party (Special handling needed if target is single)
+                     // But here we are targetting single ID.
+                     // If item is AoE, UI should handle loop.
+                     newHp = Math.min(u.maxHp, u.hp + itemDef.baseNumber);
+                 }
+             }
+             return { ...u, hp: newHp, sp: newSp };
+          }
+          return u;
+      }));
+  };
+  // ---------------------------
 
   const removeFloatingEvent = (unitId: string, eventId: string) => {
     setUnits((prev) =>
@@ -219,9 +356,6 @@ export const useGameLogic = () => {
         (u) => u.type === "PLAYER" && u.x !== null && !u.isDead && !isDeployable(u)
       );
       if (activePlayers.length === 0) {
-        // Check if we really lost or if we just have only walls left?
-        // Usually if only walls left, it is defeat?
-        // Assuming yes for now.
         addLog("GAME OVER - YOU LOST");
         setPhase("DEFEAT");
         return;
@@ -237,9 +371,8 @@ export const useGameLogic = () => {
     } else if (phase === "ENEMY_TURN") {
       const activeEnemies = units.filter((u) => u.type === "ENEMY" && !u.isDead && !isDeployable(u));
       if (activeEnemies.length === 0) {
-        // Similarly check victory
-        addLog("VICTORY - ALL ENEMIES DEFEATED");
-        setPhase("VICTORY");
+        // Victory Check is done in processEnemyTurn but also here for safety if turn starts empty
+        handleVictory();
         return;
       }
       const points = activeEnemies.length * 2;
@@ -250,6 +383,33 @@ export const useGameLogic = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  const handleVictory = () => {
+       // Collect Loot
+       const currentUnits = unitsRef.current;
+       // Assuming dead enemies are still in 'units' state until level reload?
+       // Yes, we filter !isDead for active checks, but dead units remain.
+       let earnedMoney = 0;
+       currentUnits.forEach(u => {
+           if (u.type === "ENEMY" && u.isDead && u.moneyCarried) {
+               earnedMoney += u.moneyCarried;
+           }
+       });
+
+       if (earnedMoney > 0) {
+           setMoney(prev => prev + earnedMoney);
+           addLog(`Looted ${earnedMoney} coins!`);
+       }
+
+       if (currentLevelIndex >= LEVELS.length - 1) {
+           addLog("VICTORY - ALL ENEMIES DEFEATED");
+           setPhase("GAME_VICTORY");
+       } else {
+           addLog("LEVEL COMPLETED");
+           setPhase("VICTORY");
+       }
+  };
+
 
   const startPassivePhase = (nextPhase: "PLAYER_TURN" | "ENEMY_TURN") => {
     processTicksAndAdvance(() => {
@@ -853,8 +1013,7 @@ export const useGameLogic = () => {
         // Victory Check
         const activeEnemies = currentUnits.filter(u => u.type === 'ENEMY' && !u.isDead && !isDeployable(u));
         if (activeEnemies.length === 0) {
-          setPhase("VICTORY");
-          addLog("VICTORY - ALL ENEMIES DEFEATED");
+          handleVictory();
           return;
         }
 
@@ -1192,6 +1351,9 @@ export const useGameLogic = () => {
     hitTargetId,
     logs,
     interactionState,
+    money,
+    inventory,
+    persistentPlayers,
     moveUnit,
     startGameFlow,
     initializeGame,
@@ -1205,5 +1367,9 @@ export const useGameLogic = () => {
     enterTargetingMode,
     cancelInteraction,
     handleUnitClick,
+    continueToBreakingRoom,
+    startNextLevel,
+    buyItem,
+    useItem
   };
 };

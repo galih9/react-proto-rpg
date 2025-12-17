@@ -8,7 +8,9 @@ export type Phase =
   | "ENEMY_TURN"
   | "PASSIVE"
   | "VICTORY"
-  | "DEFEAT";
+  | "DEFEAT"
+  | "BREAKING_ROOM"
+  | "GAME_VICTORY";
 export type UnitType = "PLAYER" | "ENEMY" | "NEUTRAL";
 export type Element =
   | "FIRE"
@@ -181,4 +183,8 @@ export interface Item {
 export interface ActiveItem {
   itemId: string;
   stock: number;
+}
+
+export interface InventoryItem extends ActiveItem {
+  quantity: number;
 }
