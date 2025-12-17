@@ -197,8 +197,8 @@ const createRaka = (): ActiveUnit => {
     baseHp: 100,
     baseLevel: 1,
     type: "PLAYER",
-    x: 0,
-    y: 0,
+    x: null, // Start in staging area
+    y: null,
     hp: 100,
     maxHp: 100,
     sp: 100,
@@ -258,9 +258,7 @@ const createActiveUnitFromDB = (
 export const INITIAL_UNITS: ActiveUnit[] = [
   createRaka(),
   createActiveUnitFromDB("Tuyul", "p2", "PLAYER", "ICE", null, null),
-  createActiveUnitFromDB("Pocong", "e1", "ENEMY", "ICE", 4, 1),
-  createActiveUnitFromDB("Genderuwo", "e2", "ENEMY", "WIND", 3, 1),
-  createActiveUnitFromDB("Pocong", "e3", "ENEMY", "ICE", 3, 2),
+  // Enemies removed here. They will be loaded from levels.ts
 ];
 
 export const createGrid = (): TileData[] => {

@@ -4,6 +4,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { createGrid } from "./constants";
 import { useGameLogic } from "./hooks/useGameLogic";
 import { getValidTargets } from "./utils/targeting";
+import { SHOP_ITEMS } from "./data/levels";
 
 // Components
 import { GameTile } from "./components/GameTile";
@@ -15,6 +16,7 @@ import { Popup } from "./components/Popup";
 import { PauseMenu } from "./components/PauseMenu";
 import { Encyclopedia } from "./components/Encyclopedia";
 import { AboutModal } from "./components/AboutModal";
+import { BreakingRoom } from "./components/BreakingRoom";
 
 export default function App() {
   const [tiles] = useState(createGrid());
@@ -32,6 +34,9 @@ export default function App() {
     hitTargetId,
     logs,
     interactionState,
+    money,
+    inventory,
+    persistentPlayers,
     moveUnit,
     startGameFlow,
     initializeGame,
@@ -44,7 +49,11 @@ export default function App() {
     openSkillsMenu,
     enterTargetingMode,
     cancelInteraction,
-    handleUnitClick
+    handleUnitClick,
+    continueToBreakingRoom,
+    startNextLevel,
+    buyItem,
+    useItem
   } = useGameLogic();
 
   // Memoize valid targets for the current interaction state to avoid recalculating on every render
@@ -56,7 +65,7 @@ export default function App() {
   }, [interactionState, currentActor, units]);
 
   // Derived state to check if we are in main game flow
-  const isGameActive = !['LOADING', 'MENU', 'PRE_GAME_LOAD', 'START'].includes(phase);
+  const isGameActive = !['LOADING', 'MENU', 'PRE_GAME_LOAD', 'START', 'BREAKING_ROOM'].includes(phase);
   const isMenuPhase = phase === "MENU";
   const isLoadingPhase = phase === "LOADING" || phase === "PRE_GAME_LOAD";
 
@@ -285,10 +294,19 @@ export default function App() {
         {/* --- POPUPS --- */}
         {phase === "VICTORY" && (
           <Popup
-            title="Victory!"
-            message="You have defeated all enemies."
-            onRestart={initializeGame}
+            title="Level Completed!"
+            message="All enemies defeated. Continue to Breaking Room?"
+            buttonText="Continue"
+            onRestart={continueToBreakingRoom}
           />
+        )}
+        {phase === "GAME_VICTORY" && (
+            <Popup
+                title="CONGRATULATIONS!"
+                message="You have beaten the game!"
+                buttonText="Return to Menu"
+                onRestart={() => window.location.reload()} // Simple reload for now or reset state
+            />
         )}
         {phase === "DEFEAT" && (
           <Popup
@@ -296,6 +314,19 @@ export default function App() {
             message="All your units have been defeated."
             onRestart={initializeGame}
           />
+        )}
+
+        {/* --- BREAKING ROOM --- */}
+        {phase === "BREAKING_ROOM" && (
+           <BreakingRoom
+              money={money}
+              inventory={inventory}
+              shopItems={SHOP_ITEMS}
+              units={persistentPlayers}
+              onBuy={buyItem}
+              onUseItem={useItem}
+              onNextLevel={startNextLevel}
+           />
         )}
 
         {/* --- PAUSE MENU --- */}
